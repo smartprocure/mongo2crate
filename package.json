@@ -4,6 +4,7 @@
   "description": "Convert MongoDB JSON schema to CrateDB create DDL",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "prepare": "npm test && npm run build",
     "clean": "rm -rf dist",
@@ -21,7 +22,10 @@
     "schema",
     "create",
     "table",
-    "ddl"
+    "ddl",
+    "sync",
+    "change",
+    "stream"
   ],
   "author": "GovSpend",
   "license": "ISC",
@@ -38,6 +42,8 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "mongochangestream": "^0.5.0",
-    "obj-walker": "^0.0.9"
+    "node-fetch": "^3.2.10",
+    "obj-walker": "^0.0.9",
+    "print-stats": "^0.2.0"
   }
 }
