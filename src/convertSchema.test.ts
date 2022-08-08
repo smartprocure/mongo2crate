@@ -8,7 +8,7 @@ const obj = {
     _id: {
       bsonType: 'objectId',
     },
-    name: { bsonType: 'string' },
+    name: { bsonType: ['string', 'null'] },
     numberOfEmployees: {
       bsonType: 'string',
       enum: ['1 - 5', '6 - 20', '21 - 50', '51 - 200', '201 - 500', '500+'],
