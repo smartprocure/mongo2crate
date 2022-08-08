@@ -2,6 +2,9 @@ import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
 
+/**
+ * Does arr start with startsWith array.
+ */
 const arrayStartsWith = (arr: any[], startsWith: any[]) => {
   for (let i = 0; i < startsWith.length; i++) {
     if (arr[i] !== startsWith[i]) {
@@ -28,6 +31,7 @@ const convertType = (bsonType: string | string[]) => {
 }
 
 const showCommaIf = (cond: boolean) => (cond ? ',' : '')
+const padding = '  '
 
 const _convertSchema = (nodes: Node[], spacing = ''): string => {
   let returnVal = ''
@@ -45,7 +49,9 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     // Create table
     if (node.isRoot) {
       return (
-        'CREATE TABLE doc.%s (\n' + _convertSchema(nodes.slice(1), '  ') + ')'
+        'CREATE TABLE doc.%s (\n' +
+        _convertSchema(nodes.slice(1), padding) +
+        ')'
       )
     }
     // Scalar fields
@@ -63,7 +69,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
         nodes
       )
       const childNodes = nodes.slice(1, index + 1)
-      const newSpacing = spacing + '  '
+      const newSpacing = spacing + padding
       const comma = showCommaIf(nodes.length - childNodes.length > 1)
       const sqlType =
         node.val.bsonType === 'array' ? 'ARRAY' : 'OBJECT(STRICT) AS'
@@ -76,8 +82,12 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
   }
 }
 
+const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
+
+/**
+ * Convert jsonSchema to Crate table DDL
+ */
 export const convertSchema = (jsonSchema: object, tableName: string) => {
-  const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
   const nodes = walk(jsonSchema, { traverse })
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, tableName)
