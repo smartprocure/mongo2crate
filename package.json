@@ -1,8 +1,9 @@
 {
   "name": "mongo-to-crate",
   "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Convert MongoDB JSON schema to CrateDB create DDL",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "prepare": "npm test && npm run build",
     "clean": "rm -rf dist",
@@ -11,7 +12,17 @@
     "test": "jest",
     "lint": "eslint src/**"
   },
-  "keywords": [],
+  "keywords": [
+    "mongodb",
+    "mongo",
+    "crate",
+    "cratedb",
+    "json",
+    "schema",
+    "create",
+    "table",
+    "ddl"
+  ],
   "author": "GovSpend",
   "license": "ISC",
   "devDependencies": {
