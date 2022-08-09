@@ -20,9 +20,10 @@ export const initSync = (
   const dbStats = stats()
   const tableName = collection.collectionName
   const handleResult = (result: QueryResult | ErrorResult) => {
-    if (result.type === 'success') {
+    if ('rowcount' in result) {
       dbStats.incRows(result.rowcount)
     } else {
+      console.error('ERROR %O', result)
       dbStats.incErrors()
     }
   }
@@ -60,12 +61,6 @@ export const initSync = (
         await limiter.add(crate.insert(tableName, document).then(handleResult))
       }
       await limiter.finish()
-      // if (result.type === 'success') {
-      //   const numInserted = _.sumBy('rowcount', result.results)
-      //   dbStats.incRows(numInserted)
-      // } else {
-      //   dbStats.incErrors()
-      // }
     } catch (e) {
       console.error('ERROR', e)
     }

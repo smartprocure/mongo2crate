@@ -5,7 +5,6 @@ import _debug from 'debug'
 const debug = _debug('mongo-to-crate')
 
 export interface QueryResult {
-  type: 'success'
   cols: string[]
   col_types?: number[]
   rows: any[][]
@@ -14,7 +13,6 @@ export interface QueryResult {
 }
 
 export interface BulkQueryResult {
-  type: 'success'
   cols: string[]
   results: {
     rowcount: number
@@ -23,7 +21,6 @@ export interface BulkQueryResult {
 }
 
 export interface ErrorResult {
-  type: 'error'
   error: {
     message: string
     code: number
