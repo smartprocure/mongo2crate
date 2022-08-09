@@ -1,7 +1,11 @@
 import _ from 'lodash/fp.js'
 import fetch from 'node-fetch'
+import _debug from 'debug'
 
-type QueryResult = {
+const debug = _debug('mongo-to-crate')
+
+export interface QueryResult {
+  type: 'result'
   cols: string[]
   col_types?: number[]
   rows: any[][]
@@ -9,7 +13,8 @@ type QueryResult = {
   duration: number
 }
 
-type BulkQueryResult = {
+export interface BulkQueryResult {
+  type: 'result'
   cols: string[]
   results: {
     rowcount: number
@@ -17,7 +22,15 @@ type BulkQueryResult = {
   duration: number
 }
 
-interface Options {
+export interface ErrorResult {
+  type: 'error'
+  error: {
+    message: string
+    code: number
+  }
+}
+
+export interface Options {
   args?: any[]
   coltypes?: boolean
 }
@@ -39,12 +52,14 @@ export const getUpdateColsAndPlaceholders = (obj: object) => {
 }
 
 export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
-  const query = (sql: string, { args, coltypes = false }: Options) =>
-    fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
+  const query = (sql: string, { args, coltypes = false }: Options) => {
+    debug('sql %s args %O', sql, args)
+    return fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
       method: 'post',
       body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
       headers: { 'Content-Type': 'application/json' },
-    }).then((res) => res.json() as Promise<QueryResult>)
+    }).then((res) => res.json() as Promise<QueryResult | ErrorResult>)
+  }
 
   const insert = (tableName: string, record: object) => {
     const { columns, placeholders } = getInsertColsAndPlaceholders(record)
@@ -57,7 +72,9 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
     const { assignments } = getUpdateColsAndPlaceholders(update)
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})
     ON CONFLICT (id) DO UPDATE SET ${assignments}`
-    return query(sql, { args: { ...Object.values(record), ...Object.values(update) } })
+    return query(sql, {
+      args: [...Object.values(record), ...Object.values(update)],
+    })
   }
 
   const deleteById = (tableName: string, id: string) => {
@@ -76,7 +93,7 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
         ...(bulkArgs && { bulk_args: bulkArgs }),
       }),
       headers: { 'Content-Type': 'application/json' },
-    }).then((res) => res.json() as Promise<BulkQueryResult>)
+    }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
   }
 
   return { query, insert, upsert, bulkInsert, deleteById }

@@ -8,7 +8,7 @@ import mongoChangeStream from 'mongochangestream'
 import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
-import { Crate } from './crate.js'
+import { Crate, ErrorResult, QueryResult } from './crate.js'
 
 const renameKey = (obj: Record<string, any>, key: string, newKey: string) => {
   obj[newKey] = obj[key]
@@ -23,12 +23,19 @@ export const initSync = (
   const dbStats = stats()
   const tableName = collection.collectionName
   const processRecord = async (doc: ChangeStreamDocument) => {
-    console.info(JSON.stringify(doc, null, 2))
+    const handleResult = (result: QueryResult | ErrorResult) => {
+      if (result.type === 'result') {
+        dbStats.incRows(result.rowcount)
+      } else {
+        dbStats.incErrors()
+      }
+    }
     try {
       if (doc.operationType === 'insert') {
         const document = doc.fullDocument
         renameKey(document, '_id', 'id')
-        await crate.insert(tableName, document)
+        const result = await crate.insert(tableName, document)
+        handleResult(result)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument || {}
         renameKey(document, '_id', 'id')
@@ -37,41 +44,34 @@ export const initSync = (
           removedFields &&
           _.zipObject(removedFields, _.repeat(removedFields.length, 'NULL'))
         const update = { ...updatedFields, ...removed }
-        crate.upsert(tableName, document, update)
+        const result = await crate.upsert(tableName, document, update)
+        handleResult(result)
       } else if (doc.operationType === 'delete') {
-        await crate.deleteById(tableName, doc.documentKey._id.toString())
+        const id = doc.documentKey._id.toString()
+        const result = await crate.deleteById(tableName, id)
+        handleResult(result)
       }
-      dbStats.incRows()
     } catch (e) {
       console.error('ERROR', e)
-      dbStats.incErrors()
     }
     dbStats.print()
   }
 
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
-    // console.info(JSON.stringify(docs, null, 2))
     try {
-      const response = await elastic.bulk({
-        operations: docs.flatMap((doc) => [
-          { create: { _index: index, _id: doc.fullDocument._id } },
-          _.omit(['_id'], doc.fullDocument),
-        ]),
+      const documents = docs.map(({ fullDocument }) => {
+        renameKey(fullDocument, '_id', 'id')
+        return fullDocument
       })
-      // console.dir(response, { depth: 10 })
-      if (response.errors) {
-        const errors = response.items.filter((doc) => doc.create?.error)
-        const numErrors = errors.length
-        console.error('ERRORS %d', numErrors)
-        console.dir(errors, { depth: 10 })
-        dbStats.incErrors(numErrors)
-        dbStats.incRows(docs.length - numErrors)
+      const result = await crate.bulkInsert(tableName, documents)
+      if (result.type === 'result') {
+        const numInserted = _.sumBy('rowcount', result.results)
+        dbStats.incRows(numInserted)
       } else {
-        dbStats.incRows(docs.length)
+        dbStats.incErrors()
       }
     } catch (e) {
       console.error('ERROR', e)
-      dbStats.incErrors()
     }
     dbStats.print()
   }
