@@ -60,6 +60,11 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
     return query(sql, { args: { ...Object.values(record), ...Object.values(update) } })
   }
 
+  const deleteById = (tableName: string, id: string) => {
+    const sql = `DELETE FROM doc.${tableName} WHERE id = ?`
+    return query(sql, { args: [id] })
+  }
+
   const bulkInsert = (tableName: string, records: object[]) => {
     const { columns, placeholders } = getInsertColsAndPlaceholders(records[0])
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
@@ -74,7 +79,7 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
     }).then((res) => res.json() as Promise<BulkQueryResult>)
   }
 
-  return { query, insert, upsert, bulkInsert }
+  return { query, insert, upsert, bulkInsert, deleteById }
 }
 
 export type Crate = ReturnType<typeof crate>
