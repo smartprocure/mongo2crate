@@ -65,6 +65,9 @@ const obj = {
         },
       },
     },
+    metadata: {
+      bsonType: 'object'
+    }
   },
 }
 
@@ -96,7 +99,8 @@ describe('convertSchema', () => {
       "priceId" INTEGER,
       "subscriptionStatus" TEXT
     )
-  )
+  ),
+  "metadata" OBJECT
 )`)
   })
 })

@@ -21,6 +21,7 @@ const bsonTypeToSQL: Record<string, string> = {
   date: 'TIMESTAMP WITH TIME ZONE',
   number: 'INTEGER',
   bool: 'BOOLEAN',
+  object: 'OBJECT'
 }
 
 const convertType = (bsonType: string | string[]) => {
