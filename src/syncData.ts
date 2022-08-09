@@ -9,11 +9,7 @@ import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-
-const renameKey = (obj: Record<string, any>, key: string, newKey: string) => {
-  obj[newKey] = obj[key]
-  delete obj[key]
-}
+import { renameKey } from './util.js'
 
 export const initSync = (
   redis: Redis,
@@ -24,7 +20,7 @@ export const initSync = (
   const tableName = collection.collectionName
   const processRecord = async (doc: ChangeStreamDocument) => {
     const handleResult = (result: QueryResult | ErrorResult) => {
-      if (result.type === 'result') {
+      if (result.type === 'success') {
         dbStats.incRows(result.rowcount)
       } else {
         dbStats.incErrors()
@@ -64,7 +60,7 @@ export const initSync = (
         return fullDocument
       })
       const result = await crate.bulkInsert(tableName, documents)
-      if (result.type === 'result') {
+      if (result.type === 'success') {
         const numInserted = _.sumBy('rowcount', result.results)
         dbStats.incRows(numInserted)
       } else {
