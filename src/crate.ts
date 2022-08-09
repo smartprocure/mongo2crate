@@ -1,5 +1,10 @@
-import _ from 'lodash/fp.js'
 import fetch from 'node-fetch'
+import {
+  maybeShowColTypes,
+  getInsertColsAndPlaceholders,
+  getBulkInsertSqlAndArgs,
+  getUpsertSqlAndArgs,
+} from './crate-utils.js'
 import _debug from 'debug'
 
 const debug = _debug('mongo-to-crate')
@@ -32,45 +37,35 @@ export interface Options {
   coltypes?: boolean
 }
 
-const maybeShowColTypes = (endpoint: string, coltypes: boolean) =>
-  coltypes ? `${endpoint}?types` : endpoint
+export const crate = (
+  sqlEndpoint = 'http://localhost:4200/_sql',
+  auth?: string
+) => {
+  const authHeader = auth && {
+    Authorization: 'Basic ' + Buffer.from(auth, 'binary').toString('base64'),
+  }
+  debug('Auth header %O', authHeader)
 
-export const getInsertColsAndPlaceholders = (obj: object) => {
-  const keys = Object.keys(obj)
-  const columns = keys.map((col) => `"${col}"`).join(',')
-  const placeholders = _.repeat(keys.length - 1, '?,') + '?'
-  return { columns, placeholders }
-}
-
-export const getUpdateColsAndPlaceholders = (obj: object) => {
-  const keys = Object.keys(obj)
-  const assignments = keys.map((col) => `"${col}" = ?`).join(',')
-  return { assignments }
-}
-
-export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
   const query = (sql: string, { args, coltypes = false }: Options) => {
     debug('query - sql %s args %O', sql, args)
     return fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
       method: 'post',
       body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader },
     }).then((res) => res.json() as Promise<QueryResult | ErrorResult>)
   }
 
   const insert = (tableName: string, record: object) => {
-    const { columns, placeholders } = getInsertColsAndPlaceholders(record)
+    const keys = Object.keys(record)
+    const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
     return query(sql, { args: Object.values(record) })
   }
 
   const upsert = (tableName: string, record: object, update: object) => {
-    const { columns, placeholders } = getInsertColsAndPlaceholders(record)
-    const { assignments } = getUpdateColsAndPlaceholders(update)
-    const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})
-    ON CONFLICT (id) DO UPDATE SET ${assignments}`
+    const { sql, args } = getUpsertSqlAndArgs(tableName, record, update)
     return query(sql, {
-      args: [...Object.values(record), ...Object.values(update)],
+      args,
     })
   }
 
@@ -80,17 +75,12 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
   }
 
   const bulkInsert = (tableName: string, records: object[]) => {
-    const { columns, placeholders } = getInsertColsAndPlaceholders(records[0])
-    const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
-    const bulkArgs = records.map(Object.values)
-    debug('bulkInsert - sql %s bulk_args %O', sql, bulkArgs)
+    const { sql, args } = getBulkInsertSqlAndArgs(tableName, records)
+    debug('bulkInsert - sql %s bulk_args %O', sql, args)
     return fetch(sqlEndpoint, {
       method: 'post',
-      body: JSON.stringify({
-        stmt: sql,
-        ...(bulkArgs && { bulk_args: bulkArgs }),
-      }),
-      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stmt: sql, ...(args && { bulk_args: args }) }),
+      headers: { 'Content-Type': 'application/json', ...authHeader },
     }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
   }
 

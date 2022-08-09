@@ -9,8 +9,7 @@ import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { renameKey } from './util.js'
-import { rateLimit } from 'prom-utils'
+import { renameKey, setDefaults } from './util.js'
 
 export const initSync = (
   redis: Redis,
@@ -36,9 +35,7 @@ export const initSync = (
       } else if (doc.operationType === 'update') {
         const document = renameKey(doc.fullDocument || {}, '_id', 'id')
         const { updatedFields, removedFields } = doc.updateDescription
-        const removed =
-          removedFields &&
-          _.zipObject(removedFields, _.repeat(removedFields.length, 'NULL'))
+        const removed = removedFields && setDefaults(removedFields, null)
         const update = { ...updatedFields, ...removed }
         const result = await crate.upsert(tableName, document, update)
         handleResult(result)
@@ -55,12 +52,17 @@ export const initSync = (
 
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
-      const limiter = rateLimit(10)
-      for (const doc of docs) {
-        const document = renameKey(doc.fullDocument, '_id', 'id')
-        await limiter.add(crate.insert(tableName, document).then(handleResult))
+      const documents = docs.map(({ fullDocument }) =>
+        renameKey(fullDocument, '_id', 'id')
+      )
+      const result = await crate.bulkInsert(tableName, documents)
+      // console.dir(result, { depth: 10 })
+      if ('results' in result) {
+        const numInserted = _.sumBy('rowcount', result.results)
+        dbStats.incRows(numInserted)
+      } else {
+        dbStats.incErrors()
       }
-      await limiter.finish()
     } catch (e) {
       console.error('ERROR', e)
     }
