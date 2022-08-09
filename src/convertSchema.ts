@@ -55,7 +55,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
         ')'
       )
     }
-    // Scalar fields
+    // Scalar fields, including objects with no defined fields
     if (node.isLeaf) {
       const comma = showCommaIf(nodes.length > 1)
       const sqlType = convertType(node.val.bsonType)
