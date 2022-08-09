@@ -49,29 +49,15 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
   const insert = (tableName: string, record: object) => {
     const { columns, placeholders } = getInsertColsAndPlaceholders(record)
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
-    return fetch(sqlEndpoint, {
-      method: 'post',
-      body: JSON.stringify({
-        stmt: sql,
-        args: Object.values(record),
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    }).then((res) => res.json() as Promise<QueryResult>)
+    return query(sql, { args: Object.values(record) })
   }
 
   const upsert = (tableName: string, record: object, update: object) => {
     const { columns, placeholders } = getInsertColsAndPlaceholders(record)
-    const {assignments} = getUpdateColsAndPlaceholders(update)
+    const { assignments } = getUpdateColsAndPlaceholders(update)
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})
     ON CONFLICT (id) DO UPDATE SET ${assignments}`
-    return fetch(sqlEndpoint, {
-      method: 'post',
-      body: JSON.stringify({
-        stmt: sql,
-        args: {...Object.values(record), ...Object.values(update)},
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    }).then((res) => res.json() as Promise<QueryResult>)
+    return query(sql, { args: { ...Object.values(record), ...Object.values(update) } })
   }
 
   const bulkInsert = (tableName: string, records: object[]) => {
