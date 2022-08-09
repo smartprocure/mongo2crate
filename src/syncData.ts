@@ -10,6 +10,7 @@ import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameKey } from './util.js'
+import { rateLimit } from 'prom-utils'
 
 export const initSync = (
   redis: Redis,
@@ -18,23 +19,21 @@ export const initSync = (
 ) => {
   const dbStats = stats()
   const tableName = collection.collectionName
-  const processRecord = async (doc: ChangeStreamDocument) => {
-    const handleResult = (result: QueryResult | ErrorResult) => {
-      if (result.type === 'success') {
-        dbStats.incRows(result.rowcount)
-      } else {
-        dbStats.incErrors()
-      }
+  const handleResult = (result: QueryResult | ErrorResult) => {
+    if (result.type === 'success') {
+      dbStats.incRows(result.rowcount)
+    } else {
+      dbStats.incErrors()
     }
+  }
+  const processRecord = async (doc: ChangeStreamDocument) => {
     try {
       if (doc.operationType === 'insert') {
-        const document = doc.fullDocument
-        renameKey(document, '_id', 'id')
+        const document = renameKey(doc.fullDocument, '_id', 'id')
         const result = await crate.insert(tableName, document)
         handleResult(result)
       } else if (doc.operationType === 'update') {
-        const document = doc.fullDocument || {}
-        renameKey(document, '_id', 'id')
+        const document = renameKey(doc.fullDocument || {}, '_id', 'id')
         const { updatedFields, removedFields } = doc.updateDescription
         const removed =
           removedFields &&
@@ -55,17 +54,18 @@ export const initSync = (
 
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
-      const documents = docs.map(({ fullDocument }) => {
-        renameKey(fullDocument, '_id', 'id')
-        return fullDocument
-      })
-      const result = await crate.bulkInsert(tableName, documents)
-      if (result.type === 'success') {
-        const numInserted = _.sumBy('rowcount', result.results)
-        dbStats.incRows(numInserted)
-      } else {
-        dbStats.incErrors()
+      const limiter = rateLimit(10)
+      for (const doc of docs) {
+        const document = renameKey(doc.fullDocument, '_id', 'id')
+        await limiter.add(crate.insert(tableName, document).then(handleResult))
       }
+      await limiter.finish()
+      // if (result.type === 'success') {
+      //   const numInserted = _.sumBy('rowcount', result.results)
+      //   dbStats.incRows(numInserted)
+      // } else {
+      //   dbStats.incErrors()
+      // }
     } catch (e) {
       console.error('ERROR', e)
     }

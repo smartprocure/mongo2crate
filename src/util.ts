@@ -1,8 +1,7 @@
+import _ from 'lodash/fp.js'
+
 export const renameKey = (
   obj: Record<string, any>,
   key: string,
   newKey: string
-) => {
-  obj[newKey] = obj[key]
-  delete obj[key]
-}
+) => _.flow(_.set(newKey, _.get(key, obj)), _.omit([key]))(obj)

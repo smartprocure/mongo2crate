@@ -53,7 +53,7 @@ export const getUpdateColsAndPlaceholders = (obj: object) => {
 
 export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
   const query = (sql: string, { args, coltypes = false }: Options) => {
-    debug('sql %s args %O', sql, args)
+    debug('query - sql %s args %O', sql, args)
     return fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
       method: 'post',
       body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
@@ -86,6 +86,7 @@ export const crate = (sqlEndpoint = 'http://localhost:4200/_sql') => {
     const { columns, placeholders } = getInsertColsAndPlaceholders(records[0])
     const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
     const bulkArgs = records.map(Object.values)
+    debug('bulkInsert - sql %s bulk_args %O', sql, bulkArgs)
     return fetch(sqlEndpoint, {
       method: 'post',
       body: JSON.stringify({
