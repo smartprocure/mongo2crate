@@ -65,4 +65,7 @@ dist/
 
 *.un~
 
-src/playground.ts
+src/syncPlayground.ts
+src/collectionSettings.ts
+src/convertPlayground.ts
+tables.sql

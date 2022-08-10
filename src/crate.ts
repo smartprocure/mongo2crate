@@ -1,9 +1,11 @@
 import fetch from 'node-fetch'
 import {
   maybeShowColTypes,
-  getInsertColsAndPlaceholders,
+  getInsertSqlAndArgs,
+  getDeleteByIdSqlAndArgs,
   getBulkInsertSqlAndArgs,
   getUpsertSqlAndArgs,
+  getAuthHeader,
 } from './crate-utils.js'
 import _debug from 'debug'
 import retry from 'p-retry'
@@ -38,13 +40,10 @@ export interface Options {
   coltypes?: boolean
 }
 
-export const crate = (
-  sqlEndpoint = 'http://localhost:4200/_sql',
-  auth?: string
-) => {
-  const authHeader = auth && {
-    Authorization: 'Basic ' + Buffer.from(auth, 'binary').toString('base64'),
-  }
+const defaultEndpoint = 'http://localhost:4200/_sql'
+
+export const crate = (sqlEndpoint = defaultEndpoint, auth?: string) => {
+  const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 
   const query = (sql: string, { args, coltypes = false }: Options) => {
@@ -59,22 +58,18 @@ export const crate = (
   }
 
   const insert = (tableName: string, record: object) => {
-    const keys = Object.keys(record)
-    const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
-    const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
-    return query(sql, { args: Object.values(record) })
+    const { sql, args } = getInsertSqlAndArgs(tableName, record)
+    return query(sql, { args })
   }
 
   const upsert = (tableName: string, record: object, update: object) => {
     const { sql, args } = getUpsertSqlAndArgs(tableName, record, update)
-    return query(sql, {
-      args,
-    })
+    return query(sql, { args })
   }
 
   const deleteById = (tableName: string, id: string) => {
-    const sql = `DELETE FROM doc.${tableName} WHERE id = ?`
-    return query(sql, { args: [id] })
+    const { sql, args } = getDeleteByIdSqlAndArgs(tableName, id)
+    return query(sql, { args })
   }
 
   const bulkInsert = (tableName: string, records: object[]) => {
@@ -83,7 +78,7 @@ export const crate = (
     return retry(() =>
       fetch(sqlEndpoint, {
         method: 'post',
-        body: JSON.stringify({ stmt: sql, ...(args && { bulk_args: args }) }),
+        body: JSON.stringify({ stmt: sql, bulk_args: args }),
         headers: { 'Content-Type': 'application/json', ...authHeader },
       }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
     )

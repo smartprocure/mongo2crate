@@ -1,19 +1,7 @@
 import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
-
-/**
- * Does arr start with startsWith array.
- */
-const arrayStartsWith = (arr: any[], startsWith: any[]) => {
-  for (let i = 0; i < startsWith.length; i++) {
-    if (arr[i] !== startsWith[i]) {
-      return false
-    }
-  }
-
-  return true
-}
+import { arrayStartsWith } from './util.js'
 
 const bsonTypeToSQL: Record<string, string> = {
   objectId: 'TEXT',
@@ -21,7 +9,7 @@ const bsonTypeToSQL: Record<string, string> = {
   date: 'TIMESTAMP WITH TIME ZONE',
   number: 'INTEGER',
   bool: 'BOOLEAN',
-  object: 'OBJECT(IGNORED)'
+  object: 'OBJECT(IGNORED)',
 }
 
 const convertType = (bsonType: string | string[]) => {
@@ -73,7 +61,11 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       const newSpacing = spacing + padding
       const comma = showCommaIf(nodes.length - childNodes.length > 1)
       const sqlType =
-        node.val.bsonType === 'array' ? 'ARRAY' : 'OBJECT(STRICT) AS'
+        node.val.bsonType === 'array'
+          ? 'ARRAY'
+          : `OBJECT(${
+              node.val.additionalProperties === false ? 'STRICT' : 'DYNAMIC'
+            }) AS`
       returnVal +=
         `${spacing}${field}${sqlType} (\n` +
         _convertSchema(childNodes, newSpacing) +
@@ -85,11 +77,27 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
 
 const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
 
+type ConvertSchema = (
+  jsonSchema: object,
+  tableName: string,
+  omit?: string[]
+) => string
+
+const omitNodes = (nodes: Node[], omit: string[]) =>
+  _.remove(
+    ({ path }) =>
+      _.find((omitPath) => arrayStartsWith(path, _.toPath(omitPath)), omit),
+    nodes
+  )
+
 /**
  * Convert jsonSchema to Crate table DDL
  */
-export const convertSchema = (jsonSchema: object, tableName: string) => {
-  const nodes = walk(jsonSchema, { traverse })
+export const convertSchema: ConvertSchema = (jsonSchema, tableName, omit) => {
+  let nodes = walk(jsonSchema, { traverse })
+  if (omit) {
+    nodes = omitNodes(nodes, omit)
+  }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, tableName)
 }

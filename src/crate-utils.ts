@@ -23,6 +23,20 @@ export const getUniqueKeys = (records: object[]) => {
   return Array.from(keys).sort()
 }
 
+export const getInsertSqlAndArgs = (tableName: string, record: object) => {
+  const keys = Object.keys(record)
+  const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
+  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})`
+  const args = Object.values(record)
+  return { sql, args }
+}
+
+export const getDeleteByIdSqlAndArgs = (tableName: string, id: string) => {
+  const sql = `DELETE FROM doc."${tableName}" WHERE id = ?`
+  const args = [id]
+  return { sql, args }
+}
+
 export const getBulkInsertSqlAndArgs = (
   tableName: string,
   records: object[]
@@ -30,7 +44,7 @@ export const getBulkInsertSqlAndArgs = (
   const keys = getUniqueKeys(records)
   const defaults = setDefaults(keys, null)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
-  const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})`
+  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})`
   const args = records.map(
     _.flow(_.defaults(defaults), _.toPairs, _.sortBy(_.head), _.map(_.last))
   )
@@ -45,8 +59,12 @@ export const getUpsertSqlAndArgs = (
   const keys = Object.keys(record)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
   const { assignments } = getAssignments(update)
-  const sql = `INSERT INTO doc.${tableName} (${columns}) VALUES (${placeholders})
+  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})
     ON CONFLICT (id) DO UPDATE SET ${assignments}`
   const args = [...Object.values(record), ...Object.values(update)]
   return { sql, args }
 }
+
+export const getAuthHeader = (auth: string) => ({
+  Authorization: 'Basic ' + Buffer.from(auth, 'binary').toString('base64'),
+})

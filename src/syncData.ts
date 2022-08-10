@@ -9,12 +9,13 @@ import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { renameKey, setDefaults } from './util.js'
+import { defaultDocMapper, setDefaults } from './util.js'
 
 export const initSync = (
   redis: Redis,
   crate: Crate,
-  collection: Collection
+  collection: Collection,
+  docMapper = defaultDocMapper
 ) => {
   const dbStats = stats()
   const tableName = collection.collectionName
@@ -29,16 +30,18 @@ export const initSync = (
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
       if (doc.operationType === 'insert') {
-        const document = renameKey(doc.fullDocument, '_id', 'id')
+        const document = docMapper(doc.fullDocument)
         const result = await crate.insert(tableName, document)
         handleResult(result)
       } else if (doc.operationType === 'update') {
-        const document = renameKey(doc.fullDocument || {}, '_id', 'id')
+        const document = doc.fullDocument ? docMapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
         const removed = removedFields && setDefaults(removedFields, null)
-        const update = { ...updatedFields, ...removed }
-        const result = await crate.upsert(tableName, document, update)
-        handleResult(result)
+        const update = docMapper({ ...updatedFields, ...removed })
+        if (_.size(update)) {
+          const result = await crate.upsert(tableName, document, update)
+          handleResult(result)
+        }
       } else if (doc.operationType === 'delete') {
         const id = doc.documentKey._id.toString()
         const result = await crate.deleteById(tableName, id)
@@ -52,9 +55,8 @@ export const initSync = (
 
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
-      const documents = docs.map(({ fullDocument }) =>
-        renameKey(fullDocument, '_id', 'id')
-      )
+      const documents = docs.map(({ fullDocument }) => docMapper(fullDocument))
+      // console.dir(documents, { depth: 10 })
       const result = await crate.bulkInsert(tableName, documents)
       // console.dir(result, { depth: 10 })
       if ('results' in result) {
