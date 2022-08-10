@@ -37,7 +37,7 @@ export const setDefaults = (keys: string[], val: any) => {
   return obj
 }
 
-export const defaultDocMapper = (doc: Document) =>
+export const defaultDocMapper = (doc: Document): Document =>
   doc._id ? renameKey(doc, '_id', 'id') : doc
 
 export const sumByRowcount = (num: number) =>
