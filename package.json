@@ -43,7 +43,7 @@
   "dependencies": {
     "debug": "^4.3.4",
     "lodash": "^4.17.21",
-    "mongochangestream": "^0.6.0",
+    "mongochangestream": "^0.7.0",
     "node-fetch": "^3.2.10",
     "obj-walker": "^0.0.9",
     "p-retry": "^5.1.1",
