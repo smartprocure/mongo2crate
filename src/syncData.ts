@@ -4,12 +4,12 @@ import {
   Collection,
 } from 'mongodb'
 import { default as Redis } from 'ioredis'
-import mongoChangeStream from 'mongochangestream'
+import mongoChangeStream, { SyncOptions } from 'mongochangestream'
 import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { defaultDocMapper, setDefaults } from './util.js'
+import { defaultDocMapper, setDefaults, sumByRowcount } from './util.js'
 
 export const initSync = (
   redis: Redis,
@@ -18,7 +18,7 @@ export const initSync = (
   docMapper = defaultDocMapper
 ) => {
   const dbStats = stats()
-  const tableName = collection.collectionName
+  const tableName = collection.collectionName.toLowerCase()
   const handleResult = (result: QueryResult | ErrorResult) => {
     if ('rowcount' in result) {
       dbStats.incRows(result.rowcount)
@@ -58,10 +58,13 @@ export const initSync = (
       const documents = docs.map(({ fullDocument }) => docMapper(fullDocument))
       // console.dir(documents, { depth: 10 })
       const result = await crate.bulkInsert(tableName, documents)
+      // console.log('RESULTS')
       // console.dir(result, { depth: 10 })
       if ('results' in result) {
-        const numInserted = _.sumBy('rowcount', result.results)
+        const numInserted = sumByRowcount(1)(result.results)
+        const numFailed = sumByRowcount(-2)(result.results)
         dbStats.incRows(numInserted)
+        dbStats.incErrors(numFailed)
       } else {
         dbStats.incErrors()
       }
@@ -74,7 +77,7 @@ export const initSync = (
   const sync = mongoChangeStream.initSync(redis)
   const processChangeStream = () =>
     sync.processChangeStream(collection, processRecord)
-  const runInitialScan = (options?: QueueOptions) =>
+  const runInitialScan = (options?: QueueOptions & SyncOptions) =>
     sync.runInitialScan(collection, processRecords, options)
 
   return { processChangeStream, runInitialScan }

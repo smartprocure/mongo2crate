@@ -99,5 +99,5 @@ export const convertSchema: ConvertSchema = (jsonSchema, tableName, omit) => {
     nodes = omitNodes(nodes, omit)
   }
   const sqlSchema = _convertSchema(nodes)
-  return util.format(sqlSchema, tableName)
+  return util.format(sqlSchema, tableName.toLowerCase())
 }

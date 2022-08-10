@@ -39,3 +39,6 @@ export const setDefaults = (keys: string[], val: any) => {
 
 export const defaultDocMapper = (doc: Document) =>
   doc._id ? renameKey(doc, '_id', 'id') : doc
+
+export const sumByRowcount = (num: number) =>
+  _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))
