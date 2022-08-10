@@ -6,6 +6,7 @@ import {
   getUpsertSqlAndArgs,
 } from './crate-utils.js'
 import _debug from 'debug'
+import retry from 'p-retry'
 
 const debug = _debug('mongo-to-crate')
 
@@ -48,11 +49,13 @@ export const crate = (
 
   const query = (sql: string, { args, coltypes = false }: Options) => {
     debug('query - sql %s args %O', sql, args)
-    return fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
-      method: 'post',
-      body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
-      headers: { 'Content-Type': 'application/json', ...authHeader },
-    }).then((res) => res.json() as Promise<QueryResult | ErrorResult>)
+    return retry(() =>
+      fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
+        method: 'post',
+        body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+      }).then((res) => res.json() as Promise<QueryResult | ErrorResult>)
+    )
   }
 
   const insert = (tableName: string, record: object) => {
@@ -77,11 +80,13 @@ export const crate = (
   const bulkInsert = (tableName: string, records: object[]) => {
     const { sql, args } = getBulkInsertSqlAndArgs(tableName, records)
     debug('bulkInsert - sql %s bulk_args %O', sql, args)
-    return fetch(sqlEndpoint, {
-      method: 'post',
-      body: JSON.stringify({ stmt: sql, ...(args && { bulk_args: args }) }),
-      headers: { 'Content-Type': 'application/json', ...authHeader },
-    }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
+    return retry(() =>
+      fetch(sqlEndpoint, {
+        method: 'post',
+        body: JSON.stringify({ stmt: sql, ...(args && { bulk_args: args }) }),
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+      }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
+    )
   }
 
   return { query, insert, upsert, bulkInsert, deleteById }
