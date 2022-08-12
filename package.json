@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "repository": "git://github.com/smartprocure/mongo2crate.git",
   "scripts": {
-    "prepare": "npm test && npm run build",
+    "prepare": "npm test && npm lint && npm run build",
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc --declaration",
     "build:develop": "tsc --watch",
