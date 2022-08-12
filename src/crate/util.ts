@@ -1,5 +1,5 @@
 import _ from 'lodash/fp.js'
-import { setDefaults } from './util.js'
+import { setDefaults } from '../util.js'
 
 export const maybeShowColTypes = (endpoint: string, coltypes: boolean) =>
   coltypes ? `${endpoint}?types` : endpoint
@@ -68,3 +68,4 @@ export const getUpsertSqlAndArgs = (
 export const getAuthHeader = (auth: string) => ({
   Authorization: 'Basic ' + Buffer.from(auth, 'binary').toString('base64'),
 })
+

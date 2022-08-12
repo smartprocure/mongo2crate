@@ -1,4 +1,4 @@
-import { getUniqueKeys, getBulkInsertSqlAndArgs } from './crate-utils.js'
+import { getUniqueKeys, getBulkInsertSqlAndArgs } from './crate/util.js'
 
 describe('getUniqueKeys', () => {
   it('should work', () => {

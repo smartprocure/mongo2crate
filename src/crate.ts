@@ -6,7 +6,7 @@ import {
   getBulkInsertSqlAndArgs,
   getUpsertSqlAndArgs,
   getAuthHeader,
-} from './crate-utils.js'
+} from './crate/util.js'
 import _debug from 'debug'
 import retry from 'p-retry'
 
