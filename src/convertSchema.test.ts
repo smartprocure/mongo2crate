@@ -1,6 +1,6 @@
 import { convertSchema } from './convertSchema.js'
 
-const obj = {
+const schema = {
   bsonType: 'object',
   additionalProperties: false,
   required: ['name', 'type'],
@@ -73,7 +73,7 @@ const obj = {
 
 describe('convertSchema', () => {
   it('should convert the schema', () => {
-    expect(convertSchema(obj, 'fooBar'))
+    expect(convertSchema(schema, 'fooBar'))
       .toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
