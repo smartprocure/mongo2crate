@@ -17,7 +17,7 @@ export const initSync = (
   collection: Collection,
   docMapper = defaultDocMapper
 ) => {
-  const dbStats = stats()
+  const dbStats = stats(collection.collectionName)
   const tableName = collection.collectionName.toLowerCase()
   const handleResult = (result: QueryResult | ErrorResult) => {
     if ('rowcount' in result) {
@@ -56,10 +56,7 @@ export const initSync = (
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
       const documents = docs.map(({ fullDocument }) => docMapper(fullDocument))
-      // console.dir(documents, { depth: 10 })
       const result = await crate.bulkInsert(tableName, documents)
-      // console.log('RESULTS')
-      // console.dir(result, { depth: 10 })
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)

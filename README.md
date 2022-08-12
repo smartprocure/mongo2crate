@@ -1,9 +1,42 @@
 # Mongo to Crate
 
-```typescript
-import { convertSchema } from 'mongo-to-crate'
+## Sync MongoDB to Crate
 
-const obj = {
+```typescript
+import { initSync, crate, defaultDocMapper, omitFields } from 'mongo2crate'
+import { default as Redis } from 'ioredis'
+import { MongoClient } from 'mongodb'
+import retry from 'p-retry'
+import _ from 'lodash/fp.js'
+
+const client = await MongoClient.connect()
+const db = client.db()
+
+// Optionally, extend the default mapper to omit certain fields
+const docMapper = _.flow(
+  defaultDocMapper,
+  omitFields(['password', 'unneededStuff'])
+)
+
+const sync = initSync(
+  new Redis({ keyPrefix: 'cratedb:' }),
+  crate(),
+  db.collection('myCollection'),
+  docMapper
+)
+// Process change stream events
+sync.processChangeStream()
+// Run initial scan of collection batching documents by 1000
+const options = { batchSize: 1000 }
+retry(() => sync.runInitialScan(options))
+```
+
+## Convert a JSON schema to Crate DDL
+
+```typescript
+import { convertSchema } from 'mongo2crate'
+
+const schema = {
   bsonType: 'object',
   additionalProperties: false,
   required: ['name', 'type'],
@@ -68,16 +101,19 @@ const obj = {
         },
       },
     },
+    metadata: {
+      bsonType: 'object',
+    },
   },
 }
 
-convertSchema(obj, 'foo')
+convertSchema(schema, 'fooBar')
 ```
 
 Output:
 
 ```
-CREATE TABLE doc.foo (
+CREATE TABLE IF NOT EXISTS doc."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,
@@ -98,11 +134,12 @@ CREATE TABLE doc.foo (
       "isPrimary" BOOLEAN
     )
   ),
-  "integrations" OBJECT(STRICT) AS (
-    "stripe" OBJECT(STRICT) AS (
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
       "priceId" INTEGER,
       "subscriptionStatus" TEXT
     )
-  )
+  ),
+  "metadata" OBJECT(IGNORED)
 )
 ```
