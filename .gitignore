@@ -64,8 +64,3 @@ test-results.json
 dist/
 
 *.un~
-
-src/syncPlayground.ts
-src/collectionSettings.ts
-src/convertPlayground.ts
-tables.sql
