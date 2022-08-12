@@ -1,4 +1,4 @@
-import { convertSchema } from './convertSchema'
+import { convertSchema } from './convertSchema.js'
 
 const obj = {
   bsonType: 'object',
@@ -66,14 +66,15 @@ const obj = {
       },
     },
     metadata: {
-      bsonType: 'object'
-    }
+      bsonType: 'object',
+    },
   },
 }
 
 describe('convertSchema', () => {
   it('should convert the schema', () => {
-    expect(convertSchema(obj, 'foo')).toEqual(`CREATE TABLE doc.foo (
+    expect(convertSchema(obj, 'fooBar'))
+      .toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,
@@ -94,13 +95,13 @@ describe('convertSchema', () => {
       "isPrimary" BOOLEAN
     )
   ),
-  "integrations" OBJECT(STRICT) AS (
-    "stripe" OBJECT(STRICT) AS (
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
       "priceId" INTEGER,
       "subscriptionStatus" TEXT
     )
   ),
-  "metadata" OBJECT
+  "metadata" OBJECT(IGNORED)
 )`)
   })
 })

@@ -1,4 +1,4 @@
-import { getUniqueKeys, getBulkInsertSqlAndArgs } from './crate-utils'
+import { getUniqueKeys, getBulkInsertSqlAndArgs } from './crate-utils.js'
 
 describe('getUniqueKeys', () => {
   it('should work', () => {
@@ -18,7 +18,7 @@ describe('getBulkInsertSqlAndArgs', () => {
       { b: 7, d: 12, a: 27 },
     ]
     expect(getBulkInsertSqlAndArgs('foo', records)).toEqual({
-      sql: 'INSERT INTO doc.foo ("a","b","c","d") VALUES (?,?,?,?)',
+      sql: 'INSERT INTO doc."foo" ("a","b","c","d") VALUES (?,?,?,?)',
       args: [
         [1, 2, null, null],
         [null, 5, 3, null],

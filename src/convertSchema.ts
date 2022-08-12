@@ -38,7 +38,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     // Create table
     if (node.isRoot) {
       return (
-        'CREATE TABLE doc."%s" (\n' +
+        'CREATE TABLE IF NOT EXISTS doc."%s" (\n' +
         _convertSchema(nodes.slice(1), padding) +
         ')'
       )
