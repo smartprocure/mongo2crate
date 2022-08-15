@@ -4,7 +4,7 @@ import {
   Collection,
 } from 'mongodb'
 import { default as Redis } from 'ioredis'
-import mongoChangeStream, { ScanOptions } from 'mongochangestream'
+import mongoChangeStream, { ScanOptions, getKeys } from 'mongochangestream'
 import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
@@ -86,7 +86,7 @@ export const initSync = (
    */
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(collection, processRecords, options)
-  const keys = mongoChangeStream.getKeys(collection)
+  const keys = getKeys(collection)
 
   return { processChangeStream, runInitialScan, keys }
 }
