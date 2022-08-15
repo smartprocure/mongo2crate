@@ -1,6 +1,7 @@
 # 0.2.0
 
 * Latest `mongochangestream`.
+* Omit fields via `initSync` which uses the pipeline for change stream events.
 * Changed `initSync` options.
 * Added `pipeline` argument to `processChangeStream`.
 
