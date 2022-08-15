@@ -31,6 +31,7 @@ export const initSync = (
   }
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
+      // TODO: Handle replace?
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(tableName, document)
@@ -74,8 +75,15 @@ export const initSync = (
   }
 
   const sync = mongoChangeStream.initSync(redis, options)
+  /**
+   * Process MongoDB change stream for the given collection.
+   */
   const processChangeStream = (pipeline?: Document[]) =>
     sync.processChangeStream(collection, processRecord, pipeline)
+  /**
+   * Run initial collection scan. `options.batchSize` defaults to 500.
+   * Sorting defaults to `_id`.
+   */
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(collection, processRecords, options)
   const keys = mongoChangeStream.getKeys(collection)
