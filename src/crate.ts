@@ -35,7 +35,7 @@ export interface ErrorResult {
   }
 }
 
-export interface Options {
+export interface QueryOptions {
   args?: any[]
   coltypes?: boolean
 }
@@ -46,7 +46,7 @@ export const crate = (sqlEndpoint = defaultEndpoint, auth?: string) => {
   const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 
-  const query = (sql: string, { args, coltypes = false }: Options) => {
+  const query = (sql: string, { args, coltypes = false }: QueryOptions) => {
     debug('query - sql %s args %O', sql, args)
     return retry(() =>
       fetch(maybeShowColTypes(sqlEndpoint, coltypes), {

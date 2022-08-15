@@ -3,7 +3,7 @@
 ## Sync MongoDB to Crate
 
 ```typescript
-import { initSync, crate, defaultDocMapper, omitFields } from 'mongo2crate'
+import { initSync, crate } from 'mongo2crate'
 import { default as Redis } from 'ioredis'
 import { MongoClient } from 'mongodb'
 import retry from 'p-retry'
@@ -12,17 +12,11 @@ import _ from 'lodash/fp.js'
 const client = await MongoClient.connect()
 const db = client.db()
 
-// Optionally, extend the default mapper to omit certain fields
-const docMapper = _.flow(
-  defaultDocMapper,
-  omitFields(['password', 'unneededStuff'])
-)
-
 const sync = initSync(
   new Redis({ keyPrefix: 'cratedb:' }),
   crate(),
   db.collection('myCollection'),
-  docMapper
+  { omit: ['password', 'unneededStuff'] }
 )
 // Process change stream events
 sync.processChangeStream()

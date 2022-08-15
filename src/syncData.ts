@@ -9,14 +9,16 @@ import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { defaultDocMapper, setDefaults, sumByRowcount } from './util.js'
+import { renameId, setDefaults, sumByRowcount } from './util.js'
+import { SyncOptions } from './types.js'
 
 export const initSync = (
   redis: Redis,
   crate: Crate,
   collection: Collection,
-  docMapper = defaultDocMapper
+  options: SyncOptions & mongoChangeStream.SyncOptions = { mapper: renameId }
 ) => {
+  const mapper = options.mapper
   const dbStats = stats(collection.collectionName)
   const tableName = collection.collectionName.toLowerCase()
   const handleResult = (result: QueryResult | ErrorResult) => {
@@ -30,14 +32,14 @@ export const initSync = (
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
       if (doc.operationType === 'insert') {
-        const document = docMapper(doc.fullDocument)
+        const document = mapper(doc.fullDocument)
         const result = await crate.insert(tableName, document)
         handleResult(result)
       } else if (doc.operationType === 'update') {
-        const document = doc.fullDocument ? docMapper(doc.fullDocument) : {}
+        const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
         const removed = removedFields && setDefaults(removedFields, null)
-        const update = docMapper({ ...updatedFields, ...removed })
+        const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
           const result = await crate.upsert(tableName, document, update)
           handleResult(result)
@@ -55,7 +57,7 @@ export const initSync = (
 
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
-      const documents = docs.map(({ fullDocument }) => docMapper(fullDocument))
+      const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
       const result = await crate.bulkInsert(tableName, documents)
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
@@ -71,9 +73,9 @@ export const initSync = (
     dbStats.print()
   }
 
-  const sync = mongoChangeStream.initSync(redis)
-  const processChangeStream = () =>
-    sync.processChangeStream(collection, processRecord)
+  const sync = mongoChangeStream.initSync(redis, options)
+  const processChangeStream = (pipeline?: Document[]) =>
+    sync.processChangeStream(collection, processRecord, pipeline)
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(collection, processRecords, options)
   const keys = mongoChangeStream.getKeys(collection)

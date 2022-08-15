@@ -1,15 +1,6 @@
 import { Document } from 'mongodb'
 import _ from 'lodash/fp.js'
 
-export const omitFields = (omitPaths: string[]) =>
-  _.flow(
-    _.omit(omitPaths),
-    // Handle nested field updates
-    _.omitBy((val, key) =>
-      _.find((omitPath) => _.startsWith(`${omitPath}.`, key), omitPaths)
-    )
-  )
-
 /**
  * Does arr start with startsWith array.
  */
@@ -37,7 +28,7 @@ export const setDefaults = (keys: string[], val: any) => {
   return obj
 }
 
-export const defaultDocMapper = (doc: Document): Document =>
+export const renameId = (doc: Document): Document =>
   doc._id ? renameKey(doc, '_id', 'id') : doc
 
 export const sumByRowcount = (num: number) =>
