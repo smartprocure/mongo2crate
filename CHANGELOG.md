@@ -1,3 +1,7 @@
+# 0.3.0
+
+* Change argument order for `initSync`.
+
 # 0.2.0
 
 * Latest `mongochangestream`.

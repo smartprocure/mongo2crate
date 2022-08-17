@@ -14,8 +14,8 @@ import { SyncOptions } from './types.js'
 
 export const initSync = (
   redis: Redis,
-  crate: Crate,
   collection: Collection,
+  crate: Crate,
   options: SyncOptions & mongoChangeStream.SyncOptions = { mapper: renameId }
 ) => {
   const mapper = options.mapper

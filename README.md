@@ -14,8 +14,8 @@ const db = client.db()
 
 const sync = initSync(
   new Redis({ keyPrefix: 'cratedb:' }),
-  crate(),
   db.collection('myCollection'),
+  crate(),
   { omit: ['password', 'unneededStuff'] }
 )
 // Process change stream events
