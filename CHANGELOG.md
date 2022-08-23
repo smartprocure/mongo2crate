@@ -1,3 +1,7 @@
+# 0.5.0
+
+* Latest `mongochangestream`.
+
 # 0.4.0
 
 * Better defaults for `initSync`.
