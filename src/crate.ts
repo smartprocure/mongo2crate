@@ -1,3 +1,4 @@
+import _ from 'lodash/fp.js'
 import fetch from 'node-fetch'
 import {
   maybeShowColTypes,
@@ -11,6 +12,11 @@ import _debug from 'debug'
 import retry from 'p-retry'
 
 const debug = _debug('mongo-to-crate')
+
+export interface CrateConfig {
+  sqlEndpoint?: string
+  auth?: string
+}
 
 export interface QueryResult {
   cols: string[]
@@ -40,9 +46,10 @@ export interface QueryOptions {
   coltypes?: boolean
 }
 
-const defaultEndpoint = 'http://localhost:4200/_sql'
+const defaultConfig = { sqlEndpoint: 'http://localhost:4200/_sql' }
 
-export const crate = (sqlEndpoint = defaultEndpoint, auth?: string) => {
+export const crate = (config?: CrateConfig) => {
+  const { sqlEndpoint, auth } = _.defaults(defaultConfig, config)
   const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 

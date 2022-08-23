@@ -12,13 +12,16 @@ import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
 import { SyncOptions } from './types.js'
 
+const defaultOptions = { mapper: renameId }
+
 export const initSync = (
   redis: Redis,
   collection: Collection,
   crate: Crate,
-  options: SyncOptions & mongoChangeStream.SyncOptions = { mapper: renameId }
+  options?: SyncOptions & mongoChangeStream.SyncOptions
 ) => {
-  const mapper = options.mapper
+  const opts = _.defaults(defaultOptions, options)
+  const mapper = opts.mapper
   const dbStats = stats(collection.collectionName)
   const tableName = collection.collectionName.toLowerCase()
   const handleResult = (result: QueryResult | ErrorResult) => {
@@ -31,7 +34,7 @@ export const initSync = (
   }
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
-      // TODO: Handle replace?
+      // TODO: Handle replace
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(tableName, document)
@@ -74,7 +77,7 @@ export const initSync = (
     dbStats.print()
   }
 
-  const sync = mongoChangeStream.initSync(redis, options)
+  const sync = mongoChangeStream.initSync(redis, opts)
   /**
    * Process MongoDB change stream for the given collection.
    */

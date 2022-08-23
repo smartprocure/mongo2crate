@@ -1,3 +1,8 @@
+# 0.4.0
+
+* Better defaults for `initSync`.
+* Better parameters for `crate`.
+
 # 0.3.0
 
 * Change argument order for `initSync`.
