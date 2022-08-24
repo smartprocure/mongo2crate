@@ -21,20 +21,17 @@ await conn.bulkInsert('agencyData', [
   },
 ])
 
-await conn.insert(
-  'foobar',
-  {
-    id: '12345',
-    name: 'NC State',
-    notificationPreferences: ['abc', 'def'],
-    integrations: {
-      stripe: {
-        priceId: 1234,
-        subscriptionStatus: 'bla'
-      }
-    }
-  }
-)
+await conn.insert('foobar', {
+  id: '12345',
+  name: 'NC State',
+  notificationPreferences: ['abc', 'def'],
+  integrations: {
+    stripe: {
+      priceId: 1234,
+      subscriptionStatus: 'bla',
+    },
+  },
+})
 
 await conn.upsert(
   'foobar',
@@ -45,13 +42,12 @@ await conn.upsert(
     integrations: {
       stripe: {
         priceId: 1234,
-        subscriptionStatus: 'bla'
-      }
-    }
+        subscriptionStatus: 'bla',
+      },
+    },
   },
   {
-    name: 'Fooo'
+    name: 'Fooo',
   }
 )
 await conn.deleteById('fooBar', '12345')
-

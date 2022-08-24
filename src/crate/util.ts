@@ -68,4 +68,3 @@ export const getUpsertSqlAndArgs = (
 export const getAuthHeader = (auth: string) => ({
   Authorization: 'Basic ' + Buffer.from(auth, 'binary').toString('base64'),
 })
-
