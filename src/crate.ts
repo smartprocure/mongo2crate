@@ -53,7 +53,8 @@ export const crate = (config?: CrateConfig) => {
   const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 
-  const query = (sql: string, { args, coltypes = false }: QueryOptions) => {
+  const query = (sql: string, options?: QueryOptions) => {
+    const { args, coltypes = false } = options || {}
     debug('query - sql %s args %O', sql, args)
     return retry(() =>
       fetch(maybeShowColTypes(sqlEndpoint, coltypes), {

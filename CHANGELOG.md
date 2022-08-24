@@ -1,3 +1,7 @@
+# 0.7.0
+
+- Second parameter should be optional for `crate.query`.
+
 # 0.6.0
 
 - Added peer dependencies.
