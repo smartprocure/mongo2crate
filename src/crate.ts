@@ -11,7 +11,7 @@ import {
 import _debug from 'debug'
 import retry from 'p-retry'
 
-const debug = _debug('mongo-to-crate')
+const debug = _debug('mongo2crate')
 
 export interface CrateConfig {
   sqlEndpoint?: string
