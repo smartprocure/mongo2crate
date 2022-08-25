@@ -2,6 +2,7 @@ import {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
+  Db,
 } from 'mongodb'
 import { default as Redis } from 'ioredis'
 import mongoChangeStream, { ScanOptions, getKeys } from 'mongochangestream'
@@ -11,6 +12,7 @@ import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
 import { SyncOptions } from './types.js'
+import { convertSchema } from './convertSchema.js'
 
 const defaultOptions = { mapper: renameId }
 
@@ -24,6 +26,24 @@ export const initSync = (
   const mapper = opts.mapper
   const dbStats = stats(collection.collectionName)
   const tableName = collection.collectionName.toLowerCase()
+
+  /**
+   * Get the existing JSON schema for the collection.
+   */
+  const getCollectionSchema = async (db: Db): Promise<object | undefined> => {
+    const colls = await db
+      .listCollections({ name: collection.collectionName })
+      .toArray()
+    return _.get('0.options.validator.$jsonSchema', colls)
+  }
+  /**
+   * Convert the given JSON schema to CrateDB table DDL.
+   */
+  const createTableFromSchema = async (jsonSchema: object) => {
+    const createTableStmt = convertSchema(jsonSchema, tableName, opts?.omit)
+    return crate.query(createTableStmt)
+  }
+
   const handleResult = (result: QueryResult | ErrorResult) => {
     if ('rowcount' in result) {
       dbStats.incRows(result.rowcount)
@@ -32,6 +52,9 @@ export const initSync = (
       dbStats.incErrors()
     }
   }
+  /**
+   * Process a change stream event.
+   */
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
       // TODO: Handle replace
@@ -58,7 +81,9 @@ export const initSync = (
     }
     dbStats.print()
   }
-
+  /**
+   * Process scan documents.
+   */
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
@@ -91,5 +116,11 @@ export const initSync = (
     sync.runInitialScan(collection, processRecords, options)
   const keys = getKeys(collection)
 
-  return { processChangeStream, runInitialScan, keys }
+  return {
+    processChangeStream,
+    runInitialScan,
+    keys,
+    createTableFromSchema,
+    getCollectionSchema,
+  }
 }

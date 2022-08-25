@@ -18,6 +18,11 @@ const sync = initSync(
   crate(),
   { omit: ['password', 'unneededStuff'] }
 )
+// Create SQL table from JSON schema
+const schema = await sync.getCollectionSchema(db)
+if (schema) {
+  await sync.createTableFromSchema(schema)
+}
 // Process change stream events
 sync.processChangeStream()
 // Run initial scan of collection batching documents by 1000

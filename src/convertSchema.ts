@@ -91,7 +91,7 @@ const omitNodes = (nodes: Node[], omit: string[]) =>
   )
 
 /**
- * Convert jsonSchema to Crate table DDL
+ * Convert jsonSchema to CrateDB table DDL
  */
 export const convertSchema: ConvertSchema = (jsonSchema, tableName, omit) => {
   let nodes = walk(jsonSchema, { traverse })
