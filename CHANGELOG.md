@@ -1,3 +1,8 @@
+# 0.9.0
+
+- Changed `convertSchema` to accept `omit` and `overrides`.
+`overrides` allow you to override the bsonType of any path.
+
 # 0.8.0
 
 - Added `getCollectionSchema`.

@@ -2,14 +2,25 @@ import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
 import { arrayStartsWith } from './util.js'
+import { Override, ConvertOptions, Path } from './types.js'
 
 const bsonTypeToSQL: Record<string, string> = {
+  number: 'INTEGER',
+  double: 'DOUBLE PRECISION',
+  int: 'INTEGER',
+  long: 'BIGINT',
+  decimal: 'DOUBLE PRECISION',
   objectId: 'TEXT',
   string: 'TEXT',
   date: 'TIMESTAMP WITH TIME ZONE',
-  number: 'INTEGER',
+  timestamp: 'TIMESTAMP WITH TIME ZONE',
   bool: 'BOOLEAN',
   object: 'OBJECT(IGNORED)',
+  null: 'TEXT',
+  undefined: 'TEXT',
+  regex: 'TEXT',
+  symbol: 'TEXT',
+  javascript: 'TEXT',
 }
 
 const convertType = (bsonType: string | string[]) => {
@@ -77,26 +88,48 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
 
 const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
 
-type ConvertSchema = (
+export type ConvertSchema = (
   jsonSchema: object,
   tableName: string,
-  omit?: string[]
+  options?: ConvertOptions
 ) => string
 
-const omitNodes = (nodes: Node[], omit: string[]) =>
+const omitNodes = (nodes: Node[], omit: Path[]) =>
   _.remove(
     ({ path }) =>
       _.find((omitPath) => arrayStartsWith(path, _.toPath(omitPath)), omit),
     nodes
   )
 
+const handleOverrides = (nodes: Node[], overrides: Override[]) => {
+  const overriden: Node[] = []
+  for (const node of nodes) {
+    const overrideMatch = overrides.find(({ path }) =>
+      _.isEqual(node.path, _.toPath(path))
+    )
+    if (overrideMatch) {
+      overriden.push(_.set('val.bsonType', overrideMatch.bsonType, node))
+    } else {
+      overriden.push(node)
+    }
+  }
+  return overriden
+}
+
 /**
  * Convert jsonSchema to CrateDB table DDL
  */
-export const convertSchema: ConvertSchema = (jsonSchema, tableName, omit) => {
+export const convertSchema: ConvertSchema = (
+  jsonSchema,
+  tableName,
+  options
+) => {
   let nodes = walk(jsonSchema, { traverse })
-  if (omit) {
-    nodes = omitNodes(nodes, omit)
+  if (options?.omit) {
+    nodes = omitNodes(nodes, options.omit)
+  }
+  if (options?.overrides) {
+    nodes = handleOverrides(nodes, options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, tableName.toLowerCase())

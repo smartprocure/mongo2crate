@@ -40,6 +40,8 @@ const schema = {
               state: { bsonType: 'string' },
               zip: { bsonType: 'string' },
               country: { bsonType: 'string' },
+              latitude: { bsonType: 'number' },
+              longitude: { bsonType: 'number' },
             },
           },
           name: { bsonType: 'string' },
@@ -89,7 +91,79 @@ describe('convertSchema', () => {
         "county" TEXT,
         "state" TEXT,
         "zip" TEXT,
-        "country" TEXT
+        "country" TEXT,
+        "latitude" INTEGER,
+        "longitude" INTEGER
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" INTEGER,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+)`)
+  })
+  it('should omit fields from the schema', () => {
+    expect(
+      convertSchema(schema, 'fooBar', {
+        omit: ['addresses._items.address.country', 'integrations'],
+      })
+    ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(STRICT) AS (
+      "address" OBJECT(STRICT) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" TEXT,
+        "latitude" INTEGER,
+        "longitude" INTEGER
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+)`)
+  })
+  it('should override bsonType', () => {
+    expect(
+      convertSchema(schema, 'fooBar', {
+        overrides: [
+          { path: 'addresses._items.address.latitude', bsonType: 'double' },
+          { path: 'addresses._items.address.longitude', bsonType: 'double' },
+        ],
+      })
+    ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(STRICT) AS (
+      "address" OBJECT(STRICT) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" TEXT,
+        "country" TEXT,
+        "latitude" DOUBLE PRECISION,
+        "longitude" DOUBLE PRECISION
       ),
       "name" TEXT,
       "isPrimary" BOOLEAN

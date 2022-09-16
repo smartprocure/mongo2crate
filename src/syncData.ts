@@ -11,7 +11,7 @@ import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
-import { SyncOptions } from './types.js'
+import { ConvertOptions, SyncOptions } from './types.js'
 import { convertSchema } from './convertSchema.js'
 
 const defaultOptions = { mapper: renameId }
@@ -39,8 +39,14 @@ export const initSync = (
   /**
    * Convert the given JSON schema to CrateDB table DDL.
    */
-  const createTableFromSchema = async (jsonSchema: object) => {
-    const createTableStmt = convertSchema(jsonSchema, tableName, opts?.omit)
+  const createTableFromSchema = async (
+    jsonSchema: object,
+    options?: ConvertOptions
+  ) => {
+    const createTableStmt = convertSchema(jsonSchema, tableName, {
+      omit: opts?.omit,
+      ...options,
+    })
     return crate.query(createTableStmt)
   }
 
