@@ -111,7 +111,7 @@ describe('convertSchema', () => {
   it('should omit fields from the schema', () => {
     expect(
       convertSchema(schema, 'fooBar', {
-        omit: ['addresses._items.address.country', 'integrations'],
+        omit: ['addresses.address.country', 'integrations'],
       })
     ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
   "id" TEXT PRIMARY KEY,
@@ -142,8 +142,8 @@ describe('convertSchema', () => {
     expect(
       convertSchema(schema, 'fooBar', {
         overrides: [
-          { path: 'addresses._items.address.latitude', bsonType: 'double' },
-          { path: 'addresses._items.address.longitude', bsonType: 'double' },
+          { path: 'addresses.address.latitude', bsonType: 'double' },
+          { path: 'addresses.address.longitude', bsonType: 'double' },
         ],
       })
     ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (

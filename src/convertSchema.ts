@@ -116,6 +116,8 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   return overriden
 }
 
+const cleanupPath = _.update('path', _.pull('_items'))
+
 /**
  * Convert jsonSchema to CrateDB table DDL
  */
@@ -126,10 +128,10 @@ export const convertSchema: ConvertSchema = (
 ) => {
   let nodes = walk(jsonSchema, { traverse })
   if (options?.omit) {
-    nodes = omitNodes(nodes, options.omit)
+    nodes = omitNodes(nodes.map(cleanupPath), options.omit)
   }
   if (options?.overrides) {
-    nodes = handleOverrides(nodes, options.overrides)
+    nodes = handleOverrides(nodes.map(cleanupPath), options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, tableName.toLowerCase())
