@@ -2,7 +2,7 @@ import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
 import { arrayStartsWith } from './util.js'
-import { Override, ConvertOptions, Path } from './types.js'
+import { Override, ConvertOptions } from './types.js'
 
 const bsonTypeToSQL: Record<string, string> = {
   number: 'INTEGER',
@@ -94,7 +94,7 @@ export type ConvertSchema = (
   options?: ConvertOptions
 ) => string
 
-const omitNodes = (nodes: Node[], omit: Path[]) =>
+const omitNodes = (nodes: Node[], omit: string[]) =>
   _.remove(
     ({ path }) =>
       _.find((omitPath) => arrayStartsWith(path, _.toPath(omitPath)), omit),

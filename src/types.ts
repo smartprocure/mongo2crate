@@ -4,14 +4,12 @@ export interface SyncOptions {
   mapper?: (doc: Document) => Document
 }
 
-export type Path = string | string[]
-
 export interface Override {
-  path: Path
+  path: string
   bsonType: string
 }
 
 export interface ConvertOptions {
-  omit?: Path[]
+  omit?: string[]
   overrides?: Override[]
 }

@@ -1,3 +1,7 @@
+# 0.9.1
+
+- Force path to be a string to conform to the change stream omit option.
+
 # 0.9.0
 
 - Changed `convertSchema` to accept `omit` and `overrides`.
