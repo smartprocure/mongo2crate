@@ -24,7 +24,12 @@ if (schema) {
   await sync.createTableFromSchema(schema)
 }
 // Process change stream events
-sync.processChangeStream()
+const changeStream = await sync.processChangeStream()
+changeStream.start()
+// Detect schema changes and stop change stream if detected
+const schemaChange = await sync.detectSchemaChange(db)
+schemaChange.start()
+schemaChange.emitter.on('change', changeStream.stop)
 // Run initial scan of collection batching documents by 1000
 const options = { batchSize: 1000 }
 retry(() => sync.runInitialScan(options))
