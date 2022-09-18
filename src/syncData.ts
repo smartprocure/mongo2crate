@@ -2,10 +2,9 @@ import {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
-  Db,
 } from 'mongodb'
 import { default as Redis } from 'ioredis'
-import mongoChangeStream, { ScanOptions, getKeys } from 'mongochangestream'
+import mongoChangeStream, { ScanOptions } from 'mongochangestream'
 import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
@@ -27,15 +26,6 @@ export const initSync = (
   const dbStats = stats(collection.collectionName)
   const tableName = collection.collectionName.toLowerCase()
 
-  /**
-   * Get the existing JSON schema for the collection.
-   */
-  const getCollectionSchema = async (db: Db): Promise<object | undefined> => {
-    const colls = await db
-      .listCollections({ name: collection.collectionName })
-      .toArray()
-    return _.get('0.options.validator.$jsonSchema', colls)
-  }
   /**
    * Convert the given JSON schema to CrateDB table DDL.
    */
@@ -108,25 +98,25 @@ export const initSync = (
     dbStats.print()
   }
 
-  const sync = mongoChangeStream.initSync(redis, opts)
+  const sync = mongoChangeStream.initSync(redis, collection, opts)
   /**
    * Process MongoDB change stream for the given collection.
    */
   const processChangeStream = (pipeline?: Document[]) =>
-    sync.processChangeStream(collection, processRecord, pipeline)
+    sync.processChangeStream(processRecord, pipeline)
   /**
    * Run initial collection scan. `options.batchSize` defaults to 500.
    * Sorting defaults to `_id`.
    */
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
-    sync.runInitialScan(collection, processRecords, options)
-  const keys = getKeys(collection)
+    sync.runInitialScan(processRecords, options)
 
   return {
     processChangeStream,
     runInitialScan,
-    keys,
     createTableFromSchema,
-    getCollectionSchema,
+    keys: sync.keys,
+    getCollectionSchema: sync.getCollectionSchema,
+    detectSchemaChange: sync.detectSchemaChange,
   }
 }

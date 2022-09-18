@@ -1,3 +1,8 @@
+# 0.10.0
+
+- Latest `mongochangestream`.
+- `detectSchemaChange`.
+
 # 0.9.1
 
 - Force path to be a string to conform to the change stream omit option.
