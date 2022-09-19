@@ -116,6 +116,8 @@ export const initSync = (
     runInitialScan,
     createTableFromSchema,
     keys: sync.keys,
+    reset: sync.reset,
+    clearCompletedOn: sync.clearCompletedOn,
     getCollectionSchema: sync.getCollectionSchema,
     detectSchemaChange: sync.detectSchemaChange,
   }
