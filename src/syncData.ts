@@ -1,9 +1,10 @@
-import {
+import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
+  Document,
 } from 'mongodb'
-import { default as Redis } from 'ioredis'
+import type { Redis } from 'ioredis'
 import mongoChangeStream, { ScanOptions } from 'mongochangestream'
 import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
@@ -13,28 +14,25 @@ import { renameId, setDefaults, sumByRowcount } from './util.js'
 import { ConvertOptions, SyncOptions } from './types.js'
 import { convertSchema } from './convertSchema.js'
 
-const defaultOptions = { mapper: renameId }
-
 export const initSync = (
   redis: Redis,
   collection: Collection,
   crate: Crate,
-  options?: SyncOptions & mongoChangeStream.SyncOptions
+  options: SyncOptions & mongoChangeStream.SyncOptions = {}
 ) => {
-  const opts = _.defaults(defaultOptions, options)
-  const mapper = opts.mapper
+  const mapper = options.mapper || renameId
   const dbStats = stats(collection.collectionName)
-  const tableName = collection.collectionName.toLowerCase()
+  const tableName = options.tableName || collection.collectionName.toLowerCase()
 
   /**
    * Convert the given JSON schema to CrateDB table DDL.
    */
   const createTableFromSchema = async (
     jsonSchema: object,
-    options?: ConvertOptions
+    options: ConvertOptions = {}
   ) => {
     const createTableStmt = convertSchema(jsonSchema, tableName, {
-      omit: opts?.omit,
+      omit: options.omit,
       ...options,
     })
     return crate.query(createTableStmt)
@@ -53,7 +51,6 @@ export const initSync = (
    */
   const processRecord = async (doc: ChangeStreamDocument) => {
     try {
-      // TODO: Handle replace
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(tableName, document)
@@ -67,6 +64,14 @@ export const initSync = (
           const result = await crate.upsert(tableName, document, update)
           handleResult(result)
         }
+      } else if (doc.operationType === 'replace') {
+        const id = doc.documentKey._id.toString()
+        // Delete
+        await crate.deleteById(tableName, id)
+        // Insert
+        const document = mapper(doc.fullDocument)
+        const result = await crate.insert(tableName, document)
+        handleResult(result)
       } else if (doc.operationType === 'delete') {
         const id = doc.documentKey._id.toString()
         const result = await crate.deleteById(tableName, id)
@@ -98,7 +103,7 @@ export const initSync = (
     dbStats.print()
   }
 
-  const sync = mongoChangeStream.initSync(redis, collection, opts)
+  const sync = mongoChangeStream.initSync(redis, collection, options)
   /**
    * Process MongoDB change stream for the given collection.
    */

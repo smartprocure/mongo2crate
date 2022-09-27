@@ -1,3 +1,9 @@
+# 0.14.0
+
+- Option to set `tableName`.
+- Handle `replace` event.
+- Latest `mongochangestream`.
+
 # 0.13.2
 
 - Latest `mongochangestream` with bug fix.

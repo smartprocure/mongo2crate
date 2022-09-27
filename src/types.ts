@@ -1,7 +1,8 @@
-import { Document } from 'mongodb'
+import type { Document } from 'mongodb'
 
 export interface SyncOptions {
   mapper?: (doc: Document) => Document
+  tableName?: string
 }
 
 export interface Override {
