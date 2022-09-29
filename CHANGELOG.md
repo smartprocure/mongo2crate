@@ -1,3 +1,7 @@
+# 0.16.0
+
+- Expose `schemaName`, `tableName`, `qualifiedName`.
+
 # 0.15.0
 
 - Schema can be set instead of defaulting to `doc`.

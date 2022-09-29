@@ -127,5 +127,8 @@ export const initSync = (
     clearCompletedOn: sync.clearCompletedOn,
     getCollectionSchema: sync.getCollectionSchema,
     detectSchemaChange: sync.detectSchemaChange,
+    schemaName,
+    tableName,
+    qualifiedName,
   }
 }
