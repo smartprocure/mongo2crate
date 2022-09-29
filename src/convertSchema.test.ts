@@ -75,8 +75,8 @@ const schema = {
 
 describe('convertSchema', () => {
   it('should convert the schema', () => {
-    expect(convertSchema(schema, 'fooBar'))
-      .toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
+    expect(convertSchema(schema, '"doc"."foobar"'))
+      .toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,
@@ -110,10 +110,10 @@ describe('convertSchema', () => {
   })
   it('should omit fields from the schema', () => {
     expect(
-      convertSchema(schema, 'fooBar', {
+      convertSchema(schema, '"doc"."foobar"', {
         omit: ['addresses.address.country', 'integrations'],
       })
-    ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
+    ).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,
@@ -140,13 +140,13 @@ describe('convertSchema', () => {
   })
   it('should override bsonType', () => {
     expect(
-      convertSchema(schema, 'fooBar', {
+      convertSchema(schema, '"doc"."foobar"', {
         overrides: [
           { path: 'addresses.address.latitude', bsonType: 'double' },
           { path: 'addresses.address.longitude', bsonType: 'double' },
         ],
       })
-    ).toEqual(`CREATE TABLE IF NOT EXISTS doc."foobar" (
+    ).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,

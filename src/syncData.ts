@@ -22,7 +22,9 @@ export const initSync = (
 ) => {
   const mapper = options.mapper || renameId
   const dbStats = stats(collection.collectionName)
+  const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
+  const qualifiedName = `"${schemaName}"."${tableName}"`
 
   /**
    * Convert the given JSON schema to CrateDB table DDL.
@@ -31,7 +33,7 @@ export const initSync = (
     jsonSchema: object,
     options: ConvertOptions = {}
   ) => {
-    const createTableStmt = convertSchema(jsonSchema, tableName, {
+    const createTableStmt = convertSchema(jsonSchema, qualifiedName, {
       omit: options.omit,
       ...options,
     })
@@ -53,7 +55,7 @@ export const initSync = (
     try {
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
-        const result = await crate.insert(tableName, document)
+        const result = await crate.insert(qualifiedName, document)
         handleResult(result)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
@@ -61,20 +63,20 @@ export const initSync = (
         const removed = removedFields && setDefaults(removedFields, null)
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
-          const result = await crate.upsert(tableName, document, update)
+          const result = await crate.upsert(qualifiedName, document, update)
           handleResult(result)
         }
       } else if (doc.operationType === 'replace') {
         const id = doc.documentKey._id.toString()
         // Delete
-        await crate.deleteById(tableName, id)
+        await crate.deleteById(qualifiedName, id)
         // Insert
         const document = mapper(doc.fullDocument)
-        const result = await crate.insert(tableName, document)
+        const result = await crate.insert(qualifiedName, document)
         handleResult(result)
       } else if (doc.operationType === 'delete') {
         const id = doc.documentKey._id.toString()
-        const result = await crate.deleteById(tableName, id)
+        const result = await crate.deleteById(qualifiedName, id)
         handleResult(result)
       }
     } catch (e) {
@@ -88,7 +90,7 @@ export const initSync = (
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
-      const result = await crate.bulkInsert(tableName, documents)
+      const result = await crate.bulkInsert(qualifiedName, documents)
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)

@@ -21,6 +21,8 @@ const sync = initSync(
 // Create SQL table from JSON schema
 const schema = await sync.getCollectionSchema(db)
 if (schema) {
+  // The table name is derieved from the collection name and uses
+  // the doc schema by default. These can be overriden in the options.
   await sync.createTableFromSchema(schema)
 }
 // Process change stream events
@@ -37,6 +39,10 @@ initialScan.start()
 ```
 
 ## Convert a JSON schema to Crate DDL
+
+The low-level function for converting a JSON schema to a table definition
+is `convertSchema`. You can also use the `createTableFromSchema` method
+on `initSync` to generate the table definition and write it to CrateDB.
 
 ```typescript
 import { convertSchema } from 'mongo2crate'
@@ -112,13 +118,13 @@ const schema = {
   },
 }
 
-convertSchema(schema, 'fooBar')
+convertSchema(schema, '"doc"."foobar"')
 ```
 
 Output:
 
 ```
-CREATE TABLE IF NOT EXISTS doc."foobar" (
+CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "numberOfEmployees" TEXT,

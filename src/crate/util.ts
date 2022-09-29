@@ -23,28 +23,28 @@ export const getUniqueKeys = (records: object[]) => {
   return Array.from(keys).sort()
 }
 
-export const getInsertSqlAndArgs = (tableName: string, record: object) => {
+export const getInsertSqlAndArgs = (qualifiedName: string, record: object) => {
   const keys = Object.keys(record)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
-  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})`
+  const sql = `INSERT INTO ${qualifiedName} (${columns}) VALUES (${placeholders})`
   const args = Object.values(record)
   return { sql, args }
 }
 
-export const getDeleteByIdSqlAndArgs = (tableName: string, id: string) => {
-  const sql = `DELETE FROM doc."${tableName}" WHERE id = ?`
+export const getDeleteByIdSqlAndArgs = (qualifiedName: string, id: string) => {
+  const sql = `DELETE FROM ${qualifiedName} WHERE id = ?`
   const args = [id]
   return { sql, args }
 }
 
 export const getBulkInsertSqlAndArgs = (
-  tableName: string,
+  qualifiedName: string,
   records: object[]
 ) => {
   const keys = getUniqueKeys(records)
   const defaults = setDefaults(keys, null)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
-  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})`
+  const sql = `INSERT INTO ${qualifiedName} (${columns}) VALUES (${placeholders})`
   const args = records.map(
     _.flow(_.defaults(defaults), _.toPairs, _.sortBy(_.head), _.map(_.last))
   )
@@ -52,14 +52,14 @@ export const getBulkInsertSqlAndArgs = (
 }
 
 export const getUpsertSqlAndArgs = (
-  tableName: string,
+  qualifiedName: string,
   record: object,
   update: object
 ) => {
   const keys = Object.keys(record)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
   const { assignments } = getAssignments(update)
-  const sql = `INSERT INTO doc."${tableName}" (${columns}) VALUES (${placeholders})
+  const sql = `INSERT INTO ${qualifiedName} (${columns}) VALUES (${placeholders})
     ON CONFLICT (id) DO UPDATE SET ${assignments}`
   const args = [...Object.values(record), ...Object.values(update)]
   return { sql, args }

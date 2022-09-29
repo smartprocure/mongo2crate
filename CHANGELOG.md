@@ -1,3 +1,7 @@
+# 0.15.0
+
+- Schema can be set instead of defaulting to `doc`.
+
 # 0.14.0
 
 - Option to set `tableName`.

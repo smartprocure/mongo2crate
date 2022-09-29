@@ -49,7 +49,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     // Create table
     if (node.isRoot) {
       return (
-        'CREATE TABLE IF NOT EXISTS doc."%s" (\n' +
+        'CREATE TABLE IF NOT EXISTS %s (\n' +
         _convertSchema(nodes.slice(1), padding) +
         ')'
       )
@@ -90,7 +90,7 @@ const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
 
 export type ConvertSchema = (
   jsonSchema: object,
-  tableName: string,
+  qualifiedName: string,
   options?: ConvertOptions
 ) => string
 
@@ -123,7 +123,7 @@ const cleanupPath = _.update('path', _.pull('_items'))
  */
 export const convertSchema: ConvertSchema = (
   jsonSchema,
-  tableName,
+  qualifiedName,
   options
 ) => {
   let nodes = walk(jsonSchema, { traverse })
@@ -134,5 +134,5 @@ export const convertSchema: ConvertSchema = (
     nodes = handleOverrides(nodes.map(cleanupPath), options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
-  return util.format(sqlSchema, tableName.toLowerCase())
+  return util.format(sqlSchema, qualifiedName)
 }
