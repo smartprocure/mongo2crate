@@ -65,23 +65,23 @@ export const crate = (config?: CrateConfig) => {
     )
   }
 
-  const insert = (tableName: string, record: object) => {
-    const { sql, args } = getInsertSqlAndArgs(tableName, record)
+  const insert = (qualifiedName: string, record: object) => {
+    const { sql, args } = getInsertSqlAndArgs(qualifiedName, record)
     return query(sql, { args })
   }
 
-  const upsert = (tableName: string, record: object, update: object) => {
-    const { sql, args } = getUpsertSqlAndArgs(tableName, record, update)
+  const upsert = (qualifiedName: string, record: object, update: object) => {
+    const { sql, args } = getUpsertSqlAndArgs(qualifiedName, record, update)
     return query(sql, { args })
   }
 
-  const deleteById = (tableName: string, id: string) => {
-    const { sql, args } = getDeleteByIdSqlAndArgs(tableName, id)
+  const deleteById = (qualifiedName: string, id: string) => {
+    const { sql, args } = getDeleteByIdSqlAndArgs(qualifiedName, id)
     return query(sql, { args })
   }
 
-  const bulkInsert = (tableName: string, records: object[]) => {
-    const { sql, args } = getBulkInsertSqlAndArgs(tableName, records)
+  const bulkInsert = (qualifiedName: string, records: object[]) => {
+    const { sql, args } = getBulkInsertSqlAndArgs(qualifiedName, records)
     debug('bulkInsert - sql %s bulk_args %O', sql, args)
     return retry(() =>
       fetch(sqlEndpoint, {
