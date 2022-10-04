@@ -1,3 +1,8 @@
+# 0.19.0
+
+- Removed `clearCompletedOn`.
+- Latest `mongochangestream` - `JSONSchema` type.
+
 # 0.18.0
 
 - Latest `mongochangestream` - Option to strip metadata from a JSON schema for `detectSchemaChange`.

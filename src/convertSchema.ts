@@ -3,6 +3,7 @@ import { Node, walk } from 'obj-walker'
 import util from 'node:util'
 import { arrayStartsWith } from './util.js'
 import { Override, ConvertOptions } from './types.js'
+import { JSONSchema, traverseSchema } from 'mongochangestream'
 
 const bsonTypeToSQL: Record<string, string> = {
   number: 'INTEGER',
@@ -86,10 +87,8 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
   }
 }
 
-const traverse = (x: any) => x.properties || (x.items && { _items: x.items })
-
 export type ConvertSchema = (
-  jsonSchema: object,
+  jsonSchema: JSONSchema,
   qualifiedName: string,
   options?: ConvertOptions
 ) => string
@@ -126,7 +125,7 @@ export const convertSchema: ConvertSchema = (
   qualifiedName,
   options
 ) => {
-  let nodes = walk(jsonSchema, { traverse })
+  let nodes = walk(jsonSchema, { traverse: traverseSchema })
   if (options?.omit) {
     nodes = omitNodes(nodes.map(cleanupPath), options.omit)
   }
