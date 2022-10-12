@@ -6,13 +6,16 @@ import type {
 } from 'mongodb'
 import type { Redis } from 'ioredis'
 import mongoChangeStream, { ScanOptions } from 'mongochangestream'
-import { stats } from 'print-stats'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
-import { ConvertOptions, SyncOptions } from './types.js'
+import { ConvertOptions, SyncOptions, Events } from './types.js'
 import { convertSchema } from './convertSchema.js'
+import EventEmitter from 'eventemitter3'
+import _debug from 'debug'
+
+const debug = _debug('mongo2crate:sync')
 
 export const initSync = (
   redis: Redis,
@@ -21,14 +24,11 @@ export const initSync = (
   options: SyncOptions & mongoChangeStream.SyncOptions = {}
 ) => {
   const mapper = options.mapper || renameId
-  const dbStats = stats(collection.collectionName)
   const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
+  const emitter = new EventEmitter<Events>()
 
-  /**
-   * Convert the given JSON schema to CrateDB table DDL.
-   */
   const createTableFromSchema = async (
     jsonSchema: object,
     options: ConvertOptions = {}
@@ -41,11 +41,11 @@ export const initSync = (
   }
 
   const handleResult = (result: QueryResult | ErrorResult) => {
+    debug('Result %O', result)
     if ('rowcount' in result) {
-      dbStats.incRows(result.rowcount)
+      emitter.emit('process', { type: 'process', success: result.rowcount })
     } else {
-      console.error('ERROR %O', result)
-      dbStats.incErrors()
+      emitter.emit('error', { type: 'error', error: result })
     }
   }
   /**
@@ -80,9 +80,8 @@ export const initSync = (
         handleResult(result)
       }
     } catch (e) {
-      console.error('ERROR', e)
+      emitter.emit('error', { type: 'error', error: e })
     }
-    dbStats.print()
   }
   /**
    * Process scan documents.
@@ -91,36 +90,40 @@ export const initSync = (
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
       const result = await crate.bulkInsert(qualifiedName, documents)
+      debug('Result %O', result)
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)
-        dbStats.incRows(numInserted)
-        dbStats.incErrors(numFailed)
-      } else {
-        dbStats.incErrors()
+        emitter.emit('process', {
+          type: 'process',
+          success: numInserted,
+          fail: numFailed,
+        })
       }
     } catch (e) {
-      console.error('ERROR', e)
+      emitter.emit('error', { type: 'error', error: e })
     }
-    dbStats.print()
   }
 
   const sync = mongoChangeStream.initSync(redis, collection, options)
-  /**
-   * Process MongoDB change stream for the given collection.
-   */
   const processChangeStream = (pipeline?: Document[]) =>
     sync.processChangeStream(processRecord, pipeline)
-  /**
-   * Run initial collection scan. `options.batchSize` defaults to 500.
-   * Sorting defaults to `_id`.
-   */
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(processRecords, options)
 
   return {
+    /**
+     * Process MongoDB change stream for the given collection.
+     */
     processChangeStream,
+    /**
+     * Run initial collection scan. `options.batchSize` defaults to 500.
+     * Sorting defaults to `_id`.
+     */
     runInitialScan,
+    /**
+     * Convert the given JSON schema to CrateDB table DDL.
+     */
     createTableFromSchema,
     keys: sync.keys,
     reset: sync.reset,
@@ -129,5 +132,6 @@ export const initSync = (
     schemaName,
     tableName,
     qualifiedName,
+    emitter,
   }
 }

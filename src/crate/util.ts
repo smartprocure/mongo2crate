@@ -20,6 +20,7 @@ export const getUniqueKeys = (records: object[]) => {
   const keys = new Set<string>()
   // Get all the unique top-level keys
   records.forEach((rec) => Object.keys(rec).forEach((key) => keys.add(key)))
+  // Sort keys so that the order is deterministic
   return Array.from(keys).sort()
 }
 
@@ -41,6 +42,7 @@ export const getBulkInsertSqlAndArgs = (
   qualifiedName: string,
   records: object[]
 ) => {
+  // Get the set of unique keys across all the records
   const keys = getUniqueKeys(records)
   const defaults = setDefaults(keys, null)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)

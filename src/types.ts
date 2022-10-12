@@ -15,3 +15,5 @@ export interface ConvertOptions {
   omit?: string[]
   overrides?: Override[]
 }
+
+export type Events = 'process' | 'error'

@@ -18,6 +18,9 @@ const sync = initSync(
   crate(),
   { omit: ['password', 'unneededStuff'] }
 )
+// Log events
+sync.emitter.on('process', console.info)
+sync.emitter.on('error', console.error)
 // Create SQL table from JSON schema
 const schema = await sync.getCollectionSchema(db)
 if (schema) {

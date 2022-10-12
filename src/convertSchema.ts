@@ -6,8 +6,8 @@ import { Override, ConvertOptions } from './types.js'
 import { JSONSchema, traverseSchema } from 'mongochangestream'
 
 const bsonTypeToSQL: Record<string, string> = {
-  number: 'INTEGER',
-  double: 'DOUBLE PRECISION',
+  number: 'BIGINT', // 64-bit
+  double: 'DOUBLE PRECISION', // 64-bit
   int: 'INTEGER',
   long: 'BIGINT',
   decimal: 'DOUBLE PRECISION',

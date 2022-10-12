@@ -92,8 +92,8 @@ describe('convertSchema', () => {
         "state" TEXT,
         "zip" TEXT,
         "country" TEXT,
-        "latitude" INTEGER,
-        "longitude" INTEGER
+        "latitude" BIGINT,
+        "longitude" BIGINT
       ),
       "name" TEXT,
       "isPrimary" BOOLEAN
@@ -101,7 +101,7 @@ describe('convertSchema', () => {
   ),
   "integrations" OBJECT(DYNAMIC) AS (
     "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" INTEGER,
+      "priceId" BIGINT,
       "subscriptionStatus" TEXT
     )
   ),
@@ -128,8 +128,8 @@ describe('convertSchema', () => {
         "county" TEXT,
         "state" TEXT,
         "zip" TEXT,
-        "latitude" INTEGER,
-        "longitude" INTEGER
+        "latitude" BIGINT,
+        "longitude" BIGINT
       ),
       "name" TEXT,
       "isPrimary" BOOLEAN
@@ -171,7 +171,7 @@ describe('convertSchema', () => {
   ),
   "integrations" OBJECT(DYNAMIC) AS (
     "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" INTEGER,
+      "priceId" BIGINT,
       "subscriptionStatus" TEXT
     )
   ),
