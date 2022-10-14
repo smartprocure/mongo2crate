@@ -28,6 +28,9 @@ export const initSync = (
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
   const emitter = new EventEmitter<Events>()
+  const emit = (event: Events, data: object) => {
+    emitter.emit(event, { type: event, ...data })
+  }
 
   const createTableFromSchema = async (
     jsonSchema: object,
@@ -43,9 +46,9 @@ export const initSync = (
   const handleResult = (result: QueryResult | ErrorResult) => {
     debug('Result %O', result)
     if ('rowcount' in result) {
-      emitter.emit('process', { type: 'process', success: result.rowcount })
+      emit('process', { success: result.rowcount })
     } else {
-      emitter.emit('error', { type: 'error', error: result })
+      emit('error', { error: result })
     }
   }
   /**
@@ -80,7 +83,7 @@ export const initSync = (
         handleResult(result)
       }
     } catch (e) {
-      emitter.emit('error', { type: 'error', error: e })
+      emit('error', { error: e })
     }
   }
   /**
@@ -94,14 +97,10 @@ export const initSync = (
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)
-        emitter.emit('process', {
-          type: 'process',
-          success: numInserted,
-          fail: numFailed,
-        })
+        emit('process', { success: numInserted, fail: numFailed })
       }
     } catch (e) {
-      emitter.emit('error', { type: 'error', error: e })
+      emit('error', { error: e })
     }
   }
 
