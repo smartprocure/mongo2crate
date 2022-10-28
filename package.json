@@ -1,6 +1,6 @@
 {
   "name": "mongo2crate",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "description": "Sync MongoDB to CrateDB and Convert JSON schema to SQL DDL",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -55,7 +55,7 @@
     "node-fetch": "^3.2.10",
     "obj-walker": "^1.1.0",
     "p-retry": "^5.1.1",
-    "prom-utils": "^0.3.0"
+    "prom-utils": "^0.4.0"
   },
   "peerDependencies": {
     "ioredis": ">= 5.2.3",
