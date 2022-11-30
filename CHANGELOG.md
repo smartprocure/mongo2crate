@@ -1,3 +1,7 @@
+# 0.21.2
+
+- Fixed an issue when updating a nested field like `foo.bar` or `foo.0.bar`.
+
 # 0.21.1
 
 - Forgot to bump `prom-utils` in this repo.

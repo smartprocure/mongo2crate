@@ -10,10 +10,39 @@ export const getInsertColsAndPlaceholders = (fields: string[]) => {
   return { columns, placeholders }
 }
 
-export const getAssignments = (obj: object) => {
-  const keys = Object.keys(obj)
-  const assignments = keys.map((col) => `"${col}" = ?`).join(',')
-  return { assignments }
+export const quoteColumn = (column: string) => {
+  const [first, ...rest] = column.split('.')
+  let quoted = `"${first}"`
+  if (rest.length) {
+    for (const inner of rest) {
+      quoted += `['${inner}']`
+    }
+  }
+  return quoted
+}
+
+/**
+ * Given an update object return placeholder assignments and update values
+ */
+export const getAssignmentsAndUpdates = (
+  record: Record<string, any>,
+  update: Record<string, any>
+) => {
+  const placeholders: string[] = []
+  const updates: any[] = []
+  const columns = Object.keys(update)
+  for (const column of columns) {
+    // Numeric index so replace the entire value from the root of the nested path
+    if (/\.[0-9]+/.test(column)) {
+      const [first] = column.split('.')
+      placeholders.push(`${quoteColumn(first)} = ?`)
+      updates.push(record[first])
+    } else {
+      placeholders.push(`${quoteColumn(column)} = ?`)
+      updates.push(update[column])
+    }
+  }
+  return { assignments: placeholders.join(','), updates }
 }
 
 export const getUniqueKeys = (records: object[]) => {
@@ -60,10 +89,10 @@ export const getUpsertSqlAndArgs = (
 ) => {
   const keys = Object.keys(record)
   const { columns, placeholders } = getInsertColsAndPlaceholders(keys)
-  const { assignments } = getAssignments(update)
+  const { assignments, updates } = getAssignmentsAndUpdates(record, update)
   const sql = `INSERT INTO ${qualifiedName} (${columns}) VALUES (${placeholders})
     ON CONFLICT (id) DO UPDATE SET ${assignments}`
-  const args = [...Object.values(record), ...Object.values(update)]
+  const args = [...Object.values(record), ...updates]
   return { sql, args }
 }
 
