@@ -52,7 +52,10 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       return (
         'CREATE TABLE IF NOT EXISTS %s (\n' +
         _convertSchema(nodes.slice(1), padding) +
-        ')'
+        ')' +
+        (node.val.additionalProperties
+          ? " WITH (column_policy = 'dynamic')"
+          : '')
       )
     }
     // Scalar fields, including objects with no defined fields
