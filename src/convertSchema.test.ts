@@ -73,6 +73,18 @@ const schema = {
   },
 }
 
+const dynamicColumnSchema = {
+  bsonType: 'object',
+  additionalProperties: true,
+  required: ['name'],
+  properties: {
+    _id: {
+      bsonType: 'objectId',
+    },
+    name: { bsonType: ['string', 'null'] },
+  },
+}
+
 describe('convertSchema', () => {
   it('should convert the schema', () => {
     expect(convertSchema(schema, '"doc"."foobar"'))
@@ -107,6 +119,13 @@ describe('convertSchema', () => {
   ),
   "metadata" OBJECT(IGNORED)
 )`)
+  })
+  it('should convert the schema with dynamic column policy', () => {
+    expect(convertSchema(dynamicColumnSchema, '"doc"."foobar_dynamic"'))
+      .toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar_dynamic" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT
+) WITH (column_policy = 'dynamic')`)
   })
   it('should omit fields from the schema', () => {
     expect(

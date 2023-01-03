@@ -1,3 +1,8 @@
+# 0.22.0
+
+- Add support for generating `CREATE TABLE IF NOT EXISTS (...fields) WITH (column_policy = 'dynamic')`
+  when json schema has `additionalProperties` set to true at the root
+
 # 0.21.2
 
 - Fixed an issue when updating a nested field like `foo.bar` or `foo.0.bar`.
@@ -71,7 +76,7 @@
 # 0.9.0
 
 - Changed `convertSchema` to accept `omit` and `overrides`.
-`overrides` allow you to override the bsonType of any path.
+  `overrides` allow you to override the bsonType of any path.
 
 # 0.8.0
 
