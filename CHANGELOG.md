@@ -1,3 +1,7 @@
+# 0.23.1
+
+- Latest `mongochangestream` - bug fix.
+
 # 0.23.0
 
 - Latest `mongochangestream` - health checks.
