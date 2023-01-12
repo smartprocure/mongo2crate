@@ -2,10 +2,9 @@ import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
-  Document,
 } from 'mongodb'
 import type { Redis } from 'ioredis'
-import mongoChangeStream, { ScanOptions } from 'mongochangestream'
+import mongoChangeStream, { ScanOptions, ChangeStreamOptions } from 'mongochangestream'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
@@ -105,8 +104,8 @@ export const initSync = (
   }
 
   const sync = mongoChangeStream.initSync(redis, collection, options)
-  const processChangeStream = (pipeline?: Document[]) =>
-    sync.processChangeStream(processRecord, pipeline)
+  const processChangeStream = (options?: ChangeStreamOptions) =>
+    sync.processChangeStream(processRecord, options)
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(processRecords, options)
 

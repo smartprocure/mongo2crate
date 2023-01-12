@@ -1,3 +1,7 @@
+# 0.23.0
+
+- Latest `mongochangestream` - health checks.
+
 # 0.22.0
 
 - Add support for generating `CREATE TABLE IF NOT EXISTS (...fields) WITH (column_policy = 'dynamic')`
