@@ -1,3 +1,8 @@
+# 0.24.0
+
+- Latest `mongochangestream` - generic emitter.
+- Use emitter from `mongochangestream` which now emits two events on its own.
+
 # 0.23.1
 
 - Latest `mongochangestream` - bug fix.

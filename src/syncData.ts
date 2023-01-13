@@ -11,7 +11,6 @@ import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
 import { ConvertOptions, SyncOptions, Events } from './types.js'
 import { convertSchema } from './convertSchema.js'
-import EventEmitter from 'eventemitter3'
 import _debug from 'debug'
 
 const debug = _debug('mongo2crate:sync')
@@ -26,7 +25,10 @@ export const initSync = (
   const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
-  const emitter = new EventEmitter<Events>()
+  // Initialize sync
+  const sync = mongoChangeStream.initSync(redis, collection, options)
+  // Use emitter from mongochangestream
+  const emitter = sync.emitter
   const emit = (event: Events, data: object) => {
     emitter.emit(event, { type: event, ...data })
   }
@@ -103,7 +105,6 @@ export const initSync = (
     }
   }
 
-  const sync = mongoChangeStream.initSync(redis, collection, options)
   const processChangeStream = (options?: ChangeStreamOptions) =>
     sync.processChangeStream(processRecord, options)
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
