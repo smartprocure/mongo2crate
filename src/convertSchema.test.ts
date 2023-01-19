@@ -9,6 +9,7 @@ const schema = {
       bsonType: 'objectId',
     },
     name: { bsonType: ['string', 'null'] },
+    description: { bsonType: 'string' },
     numberOfEmployees: {
       bsonType: 'string',
       enum: ['1 - 5', '6 - 20', '21 - 50', '51 - 200', '201 - 500', '500+'],
@@ -91,6 +92,7 @@ describe('convertSchema', () => {
       .toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
+  "description" TEXT,
   "numberOfEmployees" TEXT,
   "notificationPreferences" ARRAY (
     TEXT
@@ -135,6 +137,7 @@ describe('convertSchema', () => {
     ).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
+  "description" TEXT,
   "numberOfEmployees" TEXT,
   "notificationPreferences" ARRAY (
     TEXT
@@ -157,17 +160,26 @@ describe('convertSchema', () => {
   "metadata" OBJECT(IGNORED)
 )`)
   })
-  it('should override bsonType', () => {
+  it('should override bsonType and convert flags', () => {
     expect(
       convertSchema(schema, '"doc"."foobar"', {
         overrides: [
           { path: 'addresses.address.latitude', bsonType: 'double' },
           { path: 'addresses.address.longitude', bsonType: 'double' },
+          {
+            path: 'description',
+            flags: ['notNull', 'indexOff', 'columnStoreOff'],
+          },
+          {
+            path: 'numberOfEmployees',
+            flags: []
+          }
         ],
       })
     ).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
+  "description" TEXT NOT NULL INDEX OFF STORAGE WITH (columnstore = false),
   "numberOfEmployees" TEXT,
   "notificationPreferences" ARRAY (
     TEXT

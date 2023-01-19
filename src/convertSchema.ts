@@ -31,6 +31,17 @@ const convertType = (bsonType: string | string[]) => {
   return bsonTypeToSQL[bsonType]
 }
 
+const flagToSQL: Record<string, string> = {
+  indexOff: 'INDEX OFF',
+  columnStoreOff: 'STORAGE WITH (columnstore = false)',
+  notNull: 'NOT NULL',
+}
+
+const flagsToSql = (flags?: string[]) =>
+  flags && flags.length
+    ? ' ' + flags.map((flag) => flagToSQL[flag]).join(' ')
+    : ''
+
 const showCommaIf = (cond: boolean) => (cond ? ',' : '')
 const padding = '  '
 
@@ -63,7 +74,8 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       const comma = showCommaIf(nodes.length > 1)
       const sqlType = convertType(node.val.bsonType)
       const primary = isPrimaryKey ? ' PRIMARY KEY' : ''
-      returnVal += `${spacing}${field}${sqlType}${primary}${comma}\n`
+      const modifiers = flagsToSql(node.val.flags)
+      returnVal += `${spacing}${field}${sqlType}${primary}${modifiers}${comma}\n`
       nodes = nodes.slice(1)
     }
     // Arrays and objects
@@ -110,7 +122,7 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
       _.isEqual(node.path, _.toPath(path))
     )
     if (overrideMatch) {
-      overriden.push(_.set('val.bsonType', overrideMatch.bsonType, node))
+      overriden.push(_.update('val', (x) => ({ ...x, ...overrideMatch }), node))
     } else {
       overriden.push(node)
     }
