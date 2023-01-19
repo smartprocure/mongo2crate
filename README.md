@@ -13,10 +13,10 @@ const client = await MongoClient.connect()
 const db = client.db()
 
 const sync = initSync(
-  new Redis({ keyPrefix: 'cratedb:' }),
-  db.collection('myCollection'),
-  crate(),
-  { omit: ['password', 'unneededStuff'] }
+    new Redis({ keyPrefix: 'cratedb:' }),
+    db.collection('myCollection'),
+    crate(),
+    { omit: ['password', 'unneededStuff'] }
 )
 // Log events
 sync.emitter.on('process', console.info)
@@ -24,9 +24,9 @@ sync.emitter.on('error', console.error)
 // Create SQL table from JSON schema
 const schema = await sync.getCollectionSchema(db)
 if (schema) {
-  // The table name is derieved from the collection name and uses
-  // the doc schema by default. These can be overriden in the options.
-  await sync.createTableFromSchema(schema)
+    // The table name is derieved from the collection name and uses
+    // the doc schema by default. These can be overriden in the options.
+    await sync.createTableFromSchema(schema)
 }
 // Process change stream events
 const changeStream = await sync.processChangeStream()
@@ -51,77 +51,95 @@ on `initSync` to generate the table definition and write it to CrateDB.
 import { convertSchema } from 'mongo2crate'
 
 const schema = {
-  bsonType: 'object',
-  additionalProperties: false,
-  required: ['name', 'type'],
-  properties: {
-    _id: {
-      bsonType: 'objectId',
-    },
-    name: { bsonType: ['string', 'null'] },
-    numberOfEmployees: {
-      bsonType: 'string',
-      enum: ['1 - 5', '6 - 20', '21 - 50', '51 - 200', '201 - 500', '500+'],
-    },
-    notificationPreferences: {
-      bsonType: 'array',
-      items: {
-        bsonType: 'string',
-        enum: [
-          'newMatchingRFQ',
-          'activityOnRFQWhereParticipant',
-          'activityOnRFQBySameOrgUsers',
-        ],
-      },
-    },
-    addresses: {
-      bsonType: 'array',
-      items: {
-        bsonType: 'object',
-        additionalProperties: false,
-        properties: {
-          address: {
+    bsonType: 'object',
+    additionalProperties: false,
+    required: ['name', 'type'],
+    properties: {
+        _id: {
+            bsonType: 'objectId',
+        },
+        name: { bsonType: ['string', 'null'] },
+        numberOfEmployees: {
+            bsonType: 'string',
+            enum: [
+                '1 - 5',
+                '6 - 20',
+                '21 - 50',
+                '51 - 200',
+                '201 - 500',
+                '500+',
+            ],
+        },
+        notificationPreferences: {
+            bsonType: 'array',
+            items: {
+                bsonType: 'string',
+                enum: [
+                    'newMatchingRFQ',
+                    'activityOnRFQWhereParticipant',
+                    'activityOnRFQBySameOrgUsers',
+                ],
+            },
+        },
+        addresses: {
+            bsonType: 'array',
+            items: {
+                bsonType: 'object',
+                additionalProperties: false,
+                properties: {
+                    address: {
+                        bsonType: 'object',
+                        additionalProperties: false,
+                        properties: {
+                            street: { bsonType: 'string' },
+                            city: { bsonType: 'string' },
+                            county: { bsonType: 'string' },
+                            state: { bsonType: 'string' },
+                            zip: { bsonType: 'string' },
+                            country: { bsonType: 'string' },
+                            latitude: { bsonType: 'number' },
+                            longitude: { bsonType: 'number' },
+                        },
+                    },
+                    name: { bsonType: 'string' },
+                    isPrimary: { bsonType: 'bool' },
+                },
+            },
+        },
+        integrations: {
             bsonType: 'object',
-            additionalProperties: false,
+            additionalProperties: true,
             properties: {
-              street: { bsonType: 'string' },
-              city: { bsonType: 'string' },
-              county: { bsonType: 'string' },
-              state: { bsonType: 'string' },
-              zip: { bsonType: 'string' },
-              country: { bsonType: 'string' },
+                stripe: {
+                    bsonType: 'object',
+                    additionalProperties: true,
+                    properties: {
+                        priceId: {
+                            bsonType: 'number',
+                        },
+                        subscriptionStatus: {
+                            bsonType: 'string',
+                        },
+                    },
+                },
             },
-          },
-          name: { bsonType: 'string' },
-          isPrimary: { bsonType: 'bool' },
         },
-      },
-    },
-    integrations: {
-      bsonType: 'object',
-      additionalProperties: true,
-      properties: {
-        stripe: {
-          bsonType: 'object',
-          additionalProperties: true,
-          properties: {
-            priceId: {
-              bsonType: 'number',
-            },
-            subscriptionStatus: {
-              bsonType: 'string',
-            },
-          },
+        metadata: {
+            bsonType: 'object',
         },
-      },
     },
-    metadata: {
-      bsonType: 'object',
-    },
-  },
 }
 
-convertSchema(schema, '"doc"."foobar"')
+convertSchema(schema, '"doc"."foobar"', {
+    overrides: [
+        { path: 'addresses.address.latitude', bsonType: 'double' },
+        { path: 'addresses.address.longitude', bsonType: 'double' },
+        {
+            path: 'description',
+            flags: ['notNull', 'indexOff', 'columnStoreOff'],
+        },
+    ],
+})
 ```
 
 Output:
@@ -130,6 +148,7 @@ Output:
 CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
+  "description" TEXT NOT NULL INDEX OFF STORAGE WITH (columnstore = false),
   "numberOfEmployees" TEXT,
   "notificationPreferences" ARRAY (
     TEXT
@@ -142,7 +161,9 @@ CREATE TABLE IF NOT EXISTS "doc"."foobar" (
         "county" TEXT,
         "state" TEXT,
         "zip" TEXT,
-        "country" TEXT
+        "country" TEXT,
+        "latitude" DOUBLE PRECISION,
+        "longitude" DOUBLE PRECISION
       ),
       "name" TEXT,
       "isPrimary" BOOLEAN

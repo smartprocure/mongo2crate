@@ -8,7 +8,8 @@ export interface SyncOptions {
 
 export interface Override {
   path: string
-  bsonType: string
+  bsonType?: string
+  flags?: string[]
 }
 
 export interface ConvertOptions {

@@ -1,3 +1,7 @@
+# 0.26.0
+
+- Added `flags` to `overrides`, including: `notNull`, `indexOff`, and `columnStoreOff`.
+
 # 0.25.0
 
 - Latest `mongochangestream` - Bug fix.
