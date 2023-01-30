@@ -1,3 +1,7 @@
+# 0.27.0
+
+- Latest `mongochangestream` - More robust cursor consumption.
+
 # 0.26.0
 
 - Added `flags` to `overrides`, including: `notNull`, `indexOff`, and `columnStoreOff`.
