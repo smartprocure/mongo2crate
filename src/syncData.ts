@@ -111,6 +111,7 @@ export const initSync = (
     sync.runInitialScan(processRecords, options)
 
   return {
+    ...sync,
     /**
      * Process MongoDB change stream for the given collection.
      */
@@ -124,10 +125,6 @@ export const initSync = (
      * Convert the given JSON schema to CrateDB table DDL.
      */
     createTableFromSchema,
-    keys: sync.keys,
-    reset: sync.reset,
-    getCollectionSchema: sync.getCollectionSchema,
-    detectSchemaChange: sync.detectSchemaChange,
     schemaName,
     tableName,
     qualifiedName,
