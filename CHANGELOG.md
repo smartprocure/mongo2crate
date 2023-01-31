@@ -1,3 +1,7 @@
+# 0.28.0
+
+- Emit initial scan errors.
+
 # 0.27.1
 
 - Export `detectResync`.

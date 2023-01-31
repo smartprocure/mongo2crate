@@ -4,7 +4,10 @@ import type {
   Collection,
 } from 'mongodb'
 import type { Redis } from 'ioredis'
-import mongoChangeStream, { ScanOptions, ChangeStreamOptions } from 'mongochangestream'
+import mongoChangeStream, {
+  ScanOptions,
+  ChangeStreamOptions,
+} from 'mongochangestream'
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
@@ -45,11 +48,11 @@ export const initSync = (
   }
 
   const handleResult = (result: QueryResult | ErrorResult) => {
-    debug('Result %O', result)
+    debug('Change stream result %O', result)
     if ('rowcount' in result) {
-      emit('process', { success: result.rowcount })
+      emit('process', { success: result.rowcount, changeStream: true })
     } else {
-      emit('error', { error: result })
+      emit('error', { error: result, changeStream: true })
     }
   }
   /**
@@ -84,24 +87,31 @@ export const initSync = (
         handleResult(result)
       }
     } catch (e) {
-      emit('error', { error: e })
+      emit('error', { error: e, changeStream: true })
     }
   }
   /**
-   * Process scan documents.
+   * Process initial scan documents.
    */
   const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
       const result = await crate.bulkInsert(qualifiedName, documents)
-      debug('Result %O', result)
+      debug('Initial scan result %O', result)
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)
-        emit('process', { success: numInserted, fail: numFailed })
+        emit('process', {
+          success: numInserted,
+          fail: numFailed,
+          initialScan: true,
+        })
+      }
+      if ('error' in result) {
+        emit('error', { error: result, initialScan: true })
       }
     } catch (e) {
-      emit('error', { error: e })
+      emit('error', { error: e, initialScan: true })
     }
   }
 
