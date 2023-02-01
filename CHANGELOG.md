@@ -1,3 +1,7 @@
+# 0.29.0
+
+- Latest `mongochangestream` - Longer `maxSyncDelay` default.
+
 # 0.28.0
 
 - Emit initial scan errors.
