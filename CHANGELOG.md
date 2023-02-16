@@ -1,3 +1,8 @@
+# 0.31.0
+
+- Glob expressions supported for overrides `path`.
+- Pass any key/value pair in `Override` object.
+
 # 0.30.0
 
 - Latest `mongochangestream` - Handle master failover scenario properly for initial scan.

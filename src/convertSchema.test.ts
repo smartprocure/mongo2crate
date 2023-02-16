@@ -161,22 +161,21 @@ describe('convertSchema', () => {
 )`)
   })
   it('should override bsonType and convert flags', () => {
-    expect(
-      convertSchema(schema, '"doc"."foobar"', {
-        overrides: [
-          { path: 'addresses.address.latitude', bsonType: 'double' },
-          { path: 'addresses.address.longitude', bsonType: 'double' },
-          {
-            path: 'description',
-            flags: ['notNull', 'indexOff', 'columnStoreOff'],
-          },
-          {
-            path: 'numberOfEmployees',
-            flags: []
-          }
-        ],
-      })
-    ).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+    const result = convertSchema(schema, '"doc"."foobar"', {
+      overrides: [
+        // Glob expression
+        { path: 'addresses.address.l*', bsonType: 'double' },
+        {
+          path: 'description',
+          flags: ['notNull', 'indexOff', 'columnStoreOff'],
+        },
+        {
+          path: 'numberOfEmployees',
+          flags: [],
+        },
+      ],
+    })
+    expect(result).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
   "description" TEXT NOT NULL INDEX OFF STORAGE WITH (columnstore = false),

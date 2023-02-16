@@ -6,9 +6,8 @@ export interface SyncOptions {
   tableName?: string
 }
 
-export interface Override {
+export interface Override extends Record<string, any> {
   path: string
-  bsonType?: string
   flags?: string[]
 }
 

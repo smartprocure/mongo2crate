@@ -4,6 +4,7 @@ import util from 'node:util'
 import { arrayStartsWith } from './util.js'
 import { Override, ConvertOptions } from './types.js'
 import { JSONSchema, traverseSchema } from 'mongochangestream'
+import { minimatch } from 'minimatch'
 
 const bsonTypeToSQL: Record<string, string> = {
   number: 'BIGINT', // 64-bit
@@ -119,7 +120,7 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   const overriden: Node[] = []
   for (const node of nodes) {
     const overrideMatch = overrides.find(({ path }) =>
-      _.isEqual(node.path, _.toPath(path))
+      minimatch(node.path.join('.'), path)
     )
     if (overrideMatch) {
       overriden.push(_.update('val', (x) => ({ ...x, ...overrideMatch }), node))

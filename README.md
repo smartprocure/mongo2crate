@@ -132,8 +132,8 @@ const schema = {
 
 convertSchema(schema, '"doc"."foobar"', {
     overrides: [
-        { path: 'addresses.address.latitude', bsonType: 'double' },
-        { path: 'addresses.address.longitude', bsonType: 'double' },
+        // Glob expression
+        { path: 'addresses.address.l*', bsonType: 'double' },
         {
             path: 'description',
             flags: ['notNull', 'indexOff', 'columnStoreOff'],
