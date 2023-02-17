@@ -208,4 +208,51 @@ describe('convertSchema', () => {
   "metadata" OBJECT(IGNORED)
 )`)
   })
+  it('should convert with mapper', () => {
+    const result = convertSchema(schema, '"doc"."foobar"', {
+      overrides: [
+        {
+          path: '*',
+          mapper(obj) {
+            if (obj.bsonType === 'number') {
+              return { ...obj, bsonType: 'double' }
+            }
+            return obj
+          },
+        },
+      ],
+    })
+    expect(result).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(STRICT) AS (
+      "address" OBJECT(STRICT) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" TEXT,
+        "country" TEXT,
+        "latitude" DOUBLE PRECISION,
+        "longitude" DOUBLE PRECISION
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" DOUBLE PRECISION,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+)`)
+  })
 })

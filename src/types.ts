@@ -1,4 +1,5 @@
 import type { Document } from 'mongodb'
+import { JSONSchema } from 'mongochangestream'
 
 export interface SyncOptions {
   mapper?: (doc: Document) => Document
@@ -8,6 +9,7 @@ export interface SyncOptions {
 
 export interface Override extends Record<string, any> {
   path: string
+  mapper?: (obj: JSONSchema, path: string) => JSONSchema
   flags?: string[]
 }
 

@@ -119,11 +119,22 @@ const omitNodes = (nodes: Node[], omit: string[]) =>
 const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   const overriden: Node[] = []
   for (const node of nodes) {
+    const stringPath = node.path.join('.')
     const overrideMatch = overrides.find(({ path }) =>
-      minimatch(node.path.join('.'), path)
+      minimatch(stringPath, path)
     )
     if (overrideMatch) {
-      overriden.push(_.update('val', (x) => ({ ...x, ...overrideMatch }), node))
+      const mapper = overrideMatch.mapper
+      overriden.push(
+        _.update(
+          'val',
+          (obj) => ({
+            ...(mapper ? mapper(obj, stringPath) : obj),
+            ...overrideMatch,
+          }),
+          node
+        )
+      )
     } else {
       overriden.push(node)
     }
