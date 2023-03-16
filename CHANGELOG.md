@@ -1,3 +1,7 @@
+# 0.33.0
+
+- Latest `mongochangestream` - `runInitialScan` pipeline.
+
 # 0.32.0
 
 - Optionally pass `mapper` for an override.
