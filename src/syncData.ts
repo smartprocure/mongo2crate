@@ -29,7 +29,7 @@ export const initSync = (
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
   // Initialize sync
-  const sync = mongoChangeStream.initSync(redis, collection, options)
+  const sync = mongoChangeStream.initSync<Events>(redis, collection, options)
   // Use emitter from mongochangestream
   const emitter = sync.emitter
   const emit = (event: Events, data: object) => {

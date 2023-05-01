@@ -1,3 +1,7 @@
+# 0.34.0
+
+- Latest `mongochangestream` - extend event types.
+
 # 0.33.0
 
 - Latest `mongochangestream` - `runInitialScan` pipeline.
