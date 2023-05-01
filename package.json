@@ -50,7 +50,6 @@
   "dependencies": {
     "debug": "^4.3.4",
     "eventemitter3": "^5.0.1",
-    "formdata-node": "^5.0.0",
     "lodash": "^4.17.21",
     "minimatch": "^6.2.0",
     "mongochangestream": "^0.37.0",
