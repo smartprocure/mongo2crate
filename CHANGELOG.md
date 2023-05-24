@@ -1,3 +1,7 @@
+# 0.36.0
+
+- Latest `mongochangestream` - Don't emit the `cursorError` event when stopping.
+
 # 0.35.1
 
 - Latest `mongochangestream` - FSM bug fix.
