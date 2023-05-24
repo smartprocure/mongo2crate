@@ -1,3 +1,7 @@
+# 0.37.0
+
+- Latest `mongochangestream` - More robust error code handling for `missingOplogEntry`.
+
 # 0.36.0
 
 - Latest `mongochangestream` - Don't emit the `cursorError` event when stopping.
