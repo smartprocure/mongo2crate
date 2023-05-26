@@ -56,9 +56,11 @@ export const initSync = (
     }
   }
   /**
-   * Process a change stream event.
+   * Process change stream events.
    */
-  const processRecord = async (doc: ChangeStreamDocument) => {
+  const processChangeStreamRecords = async (docs: ChangeStreamDocument[]) => {
+    // Assume batchSize is always 1
+    const doc = docs[0]
     try {
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
@@ -116,7 +118,10 @@ export const initSync = (
   }
 
   const processChangeStream = (options?: ChangeStreamOptions) =>
-    sync.processChangeStream(processRecord, options)
+    sync.processChangeStream(processChangeStreamRecords, {
+      ...options,
+      batchSize: 1,
+    })
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
     sync.runInitialScan(processRecords, options)
 

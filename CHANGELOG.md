@@ -1,3 +1,8 @@
+# 0.38.0
+
+- Latest `mongochangestream` - supports batching for change stream events.
+`mongo2crate` does not support this functionality, however.
+
 # 0.37.0
 
 - Latest `mongochangestream` - More robust error code handling for `missingOplogEntry`.
