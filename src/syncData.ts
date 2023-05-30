@@ -93,37 +93,54 @@ export const initSync = (
     }
   }
   /**
-   * Process initial scan documents.
+   * Process insert documents in bulk.
    */
-  const processRecords = async (docs: ChangeStreamInsertDocument[]) => {
+  const processInsertRecords = async (
+    docs: ChangeStreamInsertDocument[],
+    type = 'initialScan'
+  ) => {
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
       const result = await crate.bulkInsert(qualifiedName, documents)
-      debug('Initial scan result %O', result)
+      debug('Bulk insert result %O', result)
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)
         emit('process', {
           success: numInserted,
           fail: numFailed,
-          initialScan: true,
+          [type]: true,
         })
       }
       if ('error' in result) {
-        emit('error', { error: result, initialScan: true })
+        emit('error', { error: result, [type]: true })
       }
     } catch (e) {
-      emit('error', { error: e, initialScan: true })
+      emit('error', { error: e, [type]: true })
     }
   }
 
-  const processChangeStream = (options?: ChangeStreamOptions) =>
-    sync.processChangeStream(processChangeStreamRecords, {
-      ...options,
-      batchSize: 1,
-    })
+  const processChangeStream = (
+    options?: QueueOptions & ChangeStreamOptions & { immutable?: boolean }
+  ) =>
+    options?.immutable
+      ? // The collection is immutable and therefore only inserts will occur
+        sync.processChangeStream(
+          (docs) =>
+            processInsertRecords(
+              // Typscript hack
+              docs as unknown as ChangeStreamInsertDocument[],
+              'changeStream'
+            ),
+          options
+        )
+      : sync.processChangeStream(processChangeStreamRecords, {
+          ...options,
+          batchSize: 1,
+        })
+
   const runInitialScan = (options?: QueueOptions & ScanOptions) =>
-    sync.runInitialScan(processRecords, options)
+    sync.runInitialScan(processInsertRecords, options)
 
   return {
     ...sync,
