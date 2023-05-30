@@ -136,6 +136,7 @@ export const initSync = (
         )
       : sync.processChangeStream(processChangeStreamRecords, {
           ...options,
+          // We can only handle one record at a time
           batchSize: 1,
         })
 
