@@ -12,7 +12,12 @@ import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
 import { renameId, setDefaults, sumByRowcount } from './util.js'
-import { ConvertOptions, SyncOptions, Events } from './types.js'
+import {
+  ConvertOptions,
+  SyncOptions,
+  Events,
+  ImmutableOption,
+} from './types.js'
 import { convertSchema } from './convertSchema.js'
 import _debug from 'debug'
 
@@ -121,7 +126,7 @@ export const initSync = (
   }
 
   const processChangeStream = (
-    options?: QueueOptions & ChangeStreamOptions & { immutable?: boolean }
+    options?: QueueOptions & ChangeStreamOptions & ImmutableOption
   ) =>
     options?.immutable
       ? // The collection is immutable and therefore only inserts will occur

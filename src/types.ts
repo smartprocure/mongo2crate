@@ -1,6 +1,14 @@
 import type { Document } from 'mongodb'
 import { JSONSchema } from 'mongochangestream'
 
+export interface ImmutableOption {
+  /**
+   * If the collection is immutable set this to true. This allows batch processing
+   * where all change stream events are assumed to be inserts.
+   */
+  immutable?: boolean
+}
+
 export interface SyncOptions {
   mapper?: (doc: Document) => Document
   schemaName?: string
