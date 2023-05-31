@@ -1,3 +1,7 @@
+# 0.39.0
+
+- Use bulk insert for immutable collections.
+
 # 0.38.0
 
 - Latest `mongochangestream` - supports batching for change stream events.
