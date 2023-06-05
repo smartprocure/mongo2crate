@@ -137,7 +137,8 @@ export const initSync = (
               docs as unknown as ChangeStreamInsertDocument[],
               'changeStream'
             ),
-          options
+          // Ensure we only receive insert events
+          { ...options, operationTypes: ['insert'] }
         )
       : sync.processChangeStream(processChangeStreamRecords, {
           ...options,

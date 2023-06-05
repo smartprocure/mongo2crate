@@ -1,3 +1,7 @@
+# 0.40.0
+
+- Latest `mongochangestream` - Change stream option `operationTypes` (`insert`, `update`, `delete`, ...).
+
 # 0.39.0
 
 - Use bulk insert for immutable collections.
