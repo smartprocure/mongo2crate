@@ -142,6 +142,21 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   return overriden
 }
 
+const handleRename = (nodes: Node[], rename: Record<string, string>) => {
+  for (const node of nodes) {
+    const dottedPath = node.path.join('.')
+    if (Object.hasOwn(rename, dottedPath)) {
+      const newPath = rename[dottedPath].split('.')
+      // Check if path prefixes do not match
+      if (!_.isEqual(node.path.slice(0, -1), newPath.slice(0, -1))) {
+        throw new Error(`Rename path prefix does not match: ${dottedPath}`)
+      }
+      node.path = newPath
+      node.key = newPath.at(-1)
+    }
+  }
+}
+
 const cleanupPath = _.update('path', _.pull('_items'))
 
 /**
@@ -152,14 +167,17 @@ const cleanupPath = _.update('path', _.pull('_items'))
 export const convertSchema: ConvertSchema = (
   jsonSchema,
   qualifiedName,
-  options
+  options = {}
 ) => {
-  let nodes = walk(jsonSchema, { traverse: traverseSchema })
-  if (options?.omit) {
-    nodes = omitNodes(nodes.map(cleanupPath), options.omit)
+  let nodes = walk(jsonSchema, { traverse: traverseSchema }).map(cleanupPath)
+  if (options.omit) {
+    nodes = omitNodes(nodes, options.omit)
   }
-  if (options?.overrides) {
-    nodes = handleOverrides(nodes.map(cleanupPath), options.overrides)
+  if (options.rename) {
+    handleRename(nodes, options.rename)
+  }
+  if (options.overrides) {
+    nodes = handleOverrides(nodes, options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, qualifiedName)

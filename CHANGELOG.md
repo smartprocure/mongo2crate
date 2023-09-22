@@ -1,3 +1,7 @@
+# 0.41.0
+
+- Removed `options.mapper` in favor of `rename` which takes an object of keys to be renamed.
+
 # 0.40.0
 
 - Latest `mongochangestream` - Change stream option `operationTypes` (`insert`, `update`, `delete`, ...).

@@ -1,4 +1,3 @@
-import type { Document } from 'mongodb'
 import { JSONSchema } from 'mongochangestream'
 
 export interface ImmutableOption {
@@ -10,9 +9,9 @@ export interface ImmutableOption {
 }
 
 export interface SyncOptions {
-  mapper?: (doc: Document) => Document
   schemaName?: string
   tableName?: string
+  rename?: Record<string, string>
 }
 
 export interface Override extends Record<string, any> {
@@ -24,6 +23,7 @@ export interface Override extends Record<string, any> {
 export interface ConvertOptions {
   omit?: string[]
   overrides?: Override[]
+  rename?: Record<string, string>
 }
 
 export type Events = 'process' | 'error'

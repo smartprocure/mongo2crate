@@ -2,6 +2,7 @@ import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
+  Document,
 } from 'mongodb'
 import type { Redis } from 'ioredis'
 import mongoChangeStream, {
@@ -11,7 +12,7 @@ import mongoChangeStream, {
 import _ from 'lodash/fp.js'
 import { QueueOptions } from 'prom-utils'
 import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { renameId, setDefaults, sumByRowcount } from './util.js'
+import { renameKeys, setDefaults, sumByRowcount } from './util.js'
 import {
   ConvertOptions,
   SyncOptions,
@@ -29,7 +30,8 @@ export const initSync = (
   crate: Crate,
   options: SyncOptions & mongoChangeStream.SyncOptions = {}
 ) => {
-  const mapper = options.mapper || renameId
+  const mapper = (doc: Document) =>
+    renameKeys(doc, { ...options.rename, _id: 'id' })
   const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
