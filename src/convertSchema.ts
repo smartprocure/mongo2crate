@@ -157,7 +157,7 @@ const cleanupPath = _.update('path', _.pull('_items'))
 
 /**
  * Convert MongoDB JSON schema to CrateDB table DDL.
- * Optionally, omit fields and change the BSON type for fields.
+ * Optionally, omit fields, rename fields, and change the BSON type for fields.
  * The latter is useful where a more-specific numeric type is needed.
  */
 export const convertSchema: ConvertSchema = (
