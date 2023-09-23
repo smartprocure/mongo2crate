@@ -11,7 +11,7 @@ export interface ImmutableOption {
 export interface SyncOptions {
   schemaName?: string
   tableName?: string
-  /** Nested paths should be dotted */
+  /** Dotted path to renamed dotted path */
   rename?: Record<string, string>
 }
 
@@ -24,7 +24,7 @@ export interface Override extends Record<string, any> {
 export interface ConvertOptions {
   omit?: string[]
   overrides?: Override[]
-  /** Nested paths should be dotted */
+  /** Dotted path to renamed dotted path */
   rename?: Record<string, string>
 }
 

@@ -1,6 +1,6 @@
 # 0.41.0
 
-- Removed `options.mapper` in favor of `options.rename` which takes an object of keys to be renamed.
+- Removed `options.mapper` in favor of `options.rename` which takes an object of dotted path to renamed dotted path.
 The `rename` option is available for syncing and converting a schema to a table.
 
 # 0.40.0
