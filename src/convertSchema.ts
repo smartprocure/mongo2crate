@@ -43,7 +43,7 @@ const flagsToSql = (flags?: string[]) =>
     ? ' ' + flags.map((flag) => flagToSQL[flag]).join(' ')
     : ''
 
-const showCommaIf = (cond: boolean) => (cond ? ',' : '')
+const renderCommaIf = (cond: boolean) => (cond ? ',' : '')
 const padding = '  '
 
 const _convertSchema = (nodes: Node[], spacing = ''): string => {
@@ -68,7 +68,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     }
     // Scalar fields, including objects with no defined fields
     if (node.isLeaf) {
-      const comma = showCommaIf(nodes.length > 1)
+      const comma = renderCommaIf(nodes.length > 1)
       const sqlType = convertType(node.val.bsonType)
       const primary = isPrimaryKey ? ' PRIMARY KEY' : ''
       const modifiers = flagsToSql(node.val.flags)
@@ -83,7 +83,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       )
       const childNodes = nodes.slice(1, index + 1)
       const newSpacing = spacing + padding
-      const comma = showCommaIf(nodes.length - childNodes.length > 1)
+      const comma = renderCommaIf(nodes.length - childNodes.length > 1)
       const sqlType =
         node.val.bsonType === 'array'
           ? 'ARRAY'
