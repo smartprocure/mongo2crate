@@ -53,12 +53,8 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     if (!node) {
       return returnVal
     }
-    const isPrimaryKey = _.equals(node.path, ['_id'])
-    const field = isPrimaryKey
-      ? '"id" '
-      : node.key === '_items'
-      ? ''
-      : `"${node.key}" `
+    const isPrimaryKey = _.equals(node.path, ['id'])
+    const field = node.key === '_items' ? '' : `"${node.key}" `
     // Create table
     if (node.isRoot) {
       return (
@@ -173,9 +169,7 @@ export const convertSchema: ConvertSchema = (
   if (options.omit) {
     nodes = omitNodes(nodes, options.omit)
   }
-  if (options.rename) {
-    handleRename(nodes, options.rename)
-  }
+  handleRename(nodes, { ...options.rename, _id: 'id' })
   if (options.overrides) {
     nodes = handleOverrides(nodes, options.overrides)
   }
