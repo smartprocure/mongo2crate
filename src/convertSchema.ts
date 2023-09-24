@@ -138,17 +138,21 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   return overriden
 }
 
+/**
+ * Modify path and key for relevant nodes.
+ */
 const handleRename = (nodes: Node[], rename: Record<string, string>) => {
-  for (const node of nodes) {
-    const dottedPath = node.path.join('.')
-    if (Object.hasOwn(rename, dottedPath)) {
-      const newPath = rename[dottedPath].split('.')
-      // Check if path prefixes do not match
-      if (!_.isEqual(node.path.slice(0, -1), newPath.slice(0, -1))) {
-        throw new Error(`Rename path prefix does not match: ${dottedPath}`)
+  for (const dottedPath in rename) {
+    const oldPath = dottedPath.split('.')
+    const newPath = rename[dottedPath].split('.')
+    if (!arrayStartsWith(oldPath, newPath.slice(0, -1))) {
+      throw new Error(`Rename path prefix does not match: ${dottedPath}`)
+    }
+    for (const node of nodes) {
+      if (arrayStartsWith(node.path, oldPath)) {
+        node.path.splice(0, oldPath.length, ...newPath)
+        node.key = node.path.at(-1)
       }
-      node.path = newPath
-      node.key = newPath.at(-1)
     }
   }
 }
