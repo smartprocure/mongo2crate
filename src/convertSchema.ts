@@ -1,11 +1,12 @@
 import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
-import { arrayStartsWith, getDupes } from './util.js'
+import { arrayStartsWith } from './util.js'
 import { Override, ConvertOptions } from './types.js'
 import { JSONSchema, traverseSchema } from 'mongochangestream'
 import { minimatch } from 'minimatch'
 import makeError from 'make-error'
+import { getDupes } from 'dupes-of-hazard'
 
 export const Mongo2CrateError = makeError('Mongo2CrateError')
 
