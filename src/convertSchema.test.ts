@@ -303,6 +303,15 @@ describe('convertSchema', () => {
           'integrations.stripe': 'foo.bar',
         },
       })
-    ).toThrow()
+    ).toThrow('Rename path prefix does not match: integrations.stripe')
+  })
+  it('should throw an exception if a rename results in duplicate paths', () => {
+    expect(() =>
+      convertSchema(schema, '"doc"."foobar"', {
+        rename: {
+          'description': 'name',
+        },
+      })
+    ).toThrow('Duplicate paths found: name')
   })
 })

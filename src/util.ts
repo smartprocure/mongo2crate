@@ -1,5 +1,6 @@
 import { Document } from 'mongodb'
 import _ from 'lodash/fp.js'
+import stringify from 'json-stable-stringify'
 
 /**
  * Does arr start with startsWith array.
@@ -38,3 +39,22 @@ export const renameKeys = (doc: Document, keys: Record<string, string>) => {
 
 export const sumByRowcount = (num: number) =>
   _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))
+
+/**
+ * Get a list of duplicate values from an array.
+ * TODO: Make this a separate NPM package.
+ */
+export function getDupes<T>(arr: T[]) {
+  const counts = new Map<string, number>()
+  const dupes = new Set<T>()
+  for (const item of arr) {
+    const stringifiedItem = stringify(item)
+    const currentCount = counts.get(stringifiedItem)
+    const newCount = currentCount ? currentCount + 1 : 1
+    counts.set(stringifiedItem, newCount)
+    if (newCount === 2) {
+      dupes.add(item)
+    }
+  }
+  return dupes
+}

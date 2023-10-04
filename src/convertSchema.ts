@@ -1,10 +1,13 @@
 import _ from 'lodash/fp.js'
 import { Node, walk } from 'obj-walker'
 import util from 'node:util'
-import { arrayStartsWith } from './util.js'
+import { arrayStartsWith, getDupes } from './util.js'
 import { Override, ConvertOptions } from './types.js'
 import { JSONSchema, traverseSchema } from 'mongochangestream'
 import { minimatch } from 'minimatch'
+import makeError from 'make-error'
+
+export const Mongo2CrateError = makeError('Mongo2CrateError')
 
 const bsonTypeToSQL: Record<string, string> = {
   number: 'BIGINT', // 64-bit
@@ -146,7 +149,9 @@ const handleRename = (nodes: Node[], rename: Record<string, string>) => {
     const oldPath = dottedPath.split('.')
     const newPath = rename[dottedPath].split('.')
     if (!arrayStartsWith(oldPath, newPath.slice(0, -1))) {
-      throw new Error(`Rename path prefix does not match: ${dottedPath}`)
+      throw new Mongo2CrateError(
+        `Rename path prefix does not match: ${dottedPath}`
+      )
     }
     for (const node of nodes) {
       if (arrayStartsWith(node.path, oldPath)) {
@@ -155,8 +160,18 @@ const handleRename = (nodes: Node[], rename: Record<string, string>) => {
       }
     }
   }
-}
+  const paths = nodes
+    // Remove _items nodes since the paths are always duplicated
+    .filter((node) => node.key !== '_items')
+    .map((node) => node.path)
+  const dupes = getDupes(paths)
 
+  if (dupes.size) {
+    throw new Mongo2CrateError(
+      `Duplicate paths found: ${Array.from(dupes).join(', ')}`
+    )
+  }
+}
 const cleanupPath = _.update('path', _.pull('_items'))
 
 /**
