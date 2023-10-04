@@ -14,12 +14,6 @@ export const arrayStartsWith = (arr: any[], startsWith: any[]) => {
   return true
 }
 
-export const renameKey = (
-  obj: Record<string, any>,
-  key: string,
-  newKey: string
-) => _.flow(_.set(newKey, _.get(key, obj)), _.omit([key]))(obj)
-
 export const setDefaults = (keys: string[], val: any) => {
   const obj: Record<string, any> = {}
   for (const key of keys) {
@@ -28,8 +22,19 @@ export const setDefaults = (keys: string[], val: any) => {
   return obj
 }
 
-export const renameId = (doc: Document): Document =>
-  doc._id ? renameKey(doc, '_id', 'id') : doc
+export const renameKey = (doc: Document, key: string, newKey: string) =>
+  _.flow(_.set(newKey, _.get(key, doc)), _.omit([key]))(doc)
+
+export const renameKeys = (doc: Document, keys: Record<string, string>) => {
+  let newDoc = doc
+  for (const key in keys) {
+    if (_.has(key, doc)) {
+      const newKey = keys[key]
+      newDoc = renameKey(newDoc, key, newKey)
+    }
+  }
+  return newDoc
+}
 
 export const sumByRowcount = (num: number) =>
   _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))

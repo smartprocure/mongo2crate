@@ -5,6 +5,10 @@ import { arrayStartsWith } from './util.js'
 import { Override, ConvertOptions } from './types.js'
 import { JSONSchema, traverseSchema } from 'mongochangestream'
 import { minimatch } from 'minimatch'
+import makeError from 'make-error'
+import { getDupes } from 'dupes-of-hazard'
+
+export const Mongo2CrateError = makeError('Mongo2CrateError')
 
 const bsonTypeToSQL: Record<string, string> = {
   number: 'BIGINT', // 64-bit
@@ -43,7 +47,7 @@ const flagsToSql = (flags?: string[]) =>
     ? ' ' + flags.map((flag) => flagToSQL[flag]).join(' ')
     : ''
 
-const showCommaIf = (cond: boolean) => (cond ? ',' : '')
+const renderCommaIf = (cond: boolean) => (cond ? ',' : '')
 const padding = '  '
 
 const _convertSchema = (nodes: Node[], spacing = ''): string => {
@@ -53,12 +57,8 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     if (!node) {
       return returnVal
     }
-    const isPrimaryKey = _.equals(node.path, ['_id'])
-    const field = isPrimaryKey
-      ? '"id" '
-      : node.key === '_items'
-      ? ''
-      : `"${node.key}" `
+    const isPrimaryKey = _.equals(node.path, ['id'])
+    const field = node.key === '_items' ? '' : `"${node.key}" `
     // Create table
     if (node.isRoot) {
       return (
@@ -72,7 +72,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     }
     // Scalar fields, including objects with no defined fields
     if (node.isLeaf) {
-      const comma = showCommaIf(nodes.length > 1)
+      const comma = renderCommaIf(nodes.length > 1)
       const sqlType = convertType(node.val.bsonType)
       const primary = isPrimaryKey ? ' PRIMARY KEY' : ''
       const modifiers = flagsToSql(node.val.flags)
@@ -87,7 +87,7 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       )
       const childNodes = nodes.slice(1, index + 1)
       const newSpacing = spacing + padding
-      const comma = showCommaIf(nodes.length - childNodes.length > 1)
+      const comma = renderCommaIf(nodes.length - childNodes.length > 1)
       const sqlType =
         node.val.bsonType === 'array'
           ? 'ARRAY'
@@ -142,24 +142,56 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   return overriden
 }
 
+/**
+ * Modify path and key for relevant nodes.
+ */
+const handleRename = (nodes: Node[], rename: Record<string, string>) => {
+  for (const dottedPath in rename) {
+    const oldPath = dottedPath.split('.')
+    const newPath = rename[dottedPath].split('.')
+    if (!arrayStartsWith(oldPath, newPath.slice(0, -1))) {
+      throw new Mongo2CrateError(
+        `Rename path prefix does not match: ${dottedPath}`
+      )
+    }
+    for (const node of nodes) {
+      if (arrayStartsWith(node.path, oldPath)) {
+        node.path.splice(0, oldPath.length, ...newPath)
+        node.key = node.path.at(-1)
+      }
+    }
+  }
+  const paths = nodes
+    // Remove _items nodes since the paths are always duplicated
+    .filter((node) => node.key !== '_items')
+    .map((node) => node.path)
+  const dupes = getDupes(paths)
+
+  if (dupes.size) {
+    throw new Mongo2CrateError(
+      `Duplicate paths found: ${Array.from(dupes).join(', ')}`
+    )
+  }
+}
 const cleanupPath = _.update('path', _.pull('_items'))
 
 /**
  * Convert MongoDB JSON schema to CrateDB table DDL.
- * Optionally, omit fields and change the BSON type for fields.
+ * Optionally, omit fields, rename fields, and change the BSON type for fields.
  * The latter is useful where a more-specific numeric type is needed.
  */
 export const convertSchema: ConvertSchema = (
   jsonSchema,
   qualifiedName,
-  options
+  options = {}
 ) => {
-  let nodes = walk(jsonSchema, { traverse: traverseSchema })
-  if (options?.omit) {
-    nodes = omitNodes(nodes.map(cleanupPath), options.omit)
+  let nodes = walk(jsonSchema, { traverse: traverseSchema }).map(cleanupPath)
+  if (options.omit) {
+    nodes = omitNodes(nodes, options.omit)
   }
-  if (options?.overrides) {
-    nodes = handleOverrides(nodes.map(cleanupPath), options.overrides)
+  handleRename(nodes, { ...options.rename, _id: 'id' })
+  if (options.overrides) {
+    nodes = handleOverrides(nodes, options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, qualifiedName)

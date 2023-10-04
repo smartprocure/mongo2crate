@@ -255,4 +255,63 @@ describe('convertSchema', () => {
   "metadata" OBJECT(IGNORED)
 )`)
   })
+  it('should rename fields in the schema', () => {
+    const result = convertSchema(schema, '"doc"."foobar"', {
+      rename: {
+        numberOfEmployees: 'numEmployees',
+        'integrations.stripe.subscriptionStatus': 'integrations.stripe.status',
+        'addresses.address': 'addresses.address1',
+      },
+    })
+    expect(result).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(STRICT) AS (
+      "address1" OBJECT(STRICT) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" TEXT,
+        "country" TEXT,
+        "latitude" BIGINT,
+        "longitude" BIGINT
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" BIGINT,
+      "status" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+)`)
+  })
+  it('should throw an exception if a rename field path prefix is different', () => {
+    expect(() =>
+      convertSchema(schema, '"doc"."foobar"', {
+        rename: {
+          'integrations.stripe': 'foo.bar',
+        },
+      })
+    ).toThrow('Rename path prefix does not match: integrations.stripe')
+  })
+  it('should throw an exception if a rename results in duplicate paths', () => {
+    expect(() =>
+      convertSchema(schema, '"doc"."foobar"', {
+        rename: {
+          'description': 'name',
+        },
+      })
+    ).toThrow('Duplicate paths found: name')
+  })
 })
