@@ -1,5 +1,10 @@
 import { JSONSchema } from 'mongochangestream'
 
+interface RenameOption {
+  /** Dotted path to renamed dotted path */
+  rename?: Record<string, string>
+}
+
 export interface ImmutableOption {
   /**
    * If the collection is immutable set this to true. This allows batch processing
@@ -8,11 +13,9 @@ export interface ImmutableOption {
   immutable?: boolean
 }
 
-export interface SyncOptions {
+export interface SyncOptions extends RenameOption {
   schemaName?: string
   tableName?: string
-  /** Dotted path to renamed dotted path */
-  rename?: Record<string, string>
 }
 
 export interface Override extends Record<string, any> {
@@ -21,11 +24,9 @@ export interface Override extends Record<string, any> {
   flags?: string[]
 }
 
-export interface ConvertOptions {
+export interface ConvertOptions extends RenameOption {
   omit?: string[]
   overrides?: Override[]
-  /** Dotted path to renamed dotted path */
-  rename?: Record<string, string>
 }
 
 export type Events = 'process' | 'error'
