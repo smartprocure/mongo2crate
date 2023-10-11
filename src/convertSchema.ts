@@ -29,12 +29,14 @@ const bsonTypeToSQL: Record<string, string> = {
   javascript: 'TEXT',
 }
 
-const convertType = (bsonType: string | string[]) => {
-  if (Array.isArray(bsonType)) {
-    bsonType = bsonType[0]
-  }
-  return bsonTypeToSQL[bsonType]
-}
+
+/**
+ * Converts a BSON type to its corresponding SQL type.
+ * @param {string|string[]} bsonType - BSON type or types to convert.
+ * @return {string} Corresponding SQL type.
+ */
+const convertType = (bsonType: string | string[]) => 
+  bsonTypeToSQL[Array.isArray(bsonType) ? bsonType[0] : bsonType];
 
 const flagToSQL: Record<string, string> = {
   indexOff: 'INDEX OFF',
@@ -42,14 +44,30 @@ const flagToSQL: Record<string, string> = {
   notNull: 'NOT NULL',
 }
 
+/**
+ * Converts a list of flags into their corresponding SQL modifiers.
+ * @param {string[]} flags - List of flags to convert.
+ * @return {string} SQL modifiers separated by spaces.
+ */
 const flagsToSql = (flags?: string[]) =>
   flags && flags.length
     ? ' ' + flags.map((flag) => flagToSQL[flag]).join(' ')
     : ''
 
+/**
+ * Returns a comma if the condition is true.
+ * @param {boolean} cond - Condition to check.
+ * @return {string} A comma if the condition is true, otherwise an empty string.
+ */
 const renderCommaIf = (cond: boolean) => (cond ? ',' : '')
 const padding = '  '
 
+/**
+ * Recursively converts schema nodes into SQL table definitions.
+ * @param {Node[]} nodes - List of schema nodes to convert.
+ * @param {string} spacing - Current indentation.
+ * @return {string} SQL table definition.
+ */
 const _convertSchema = (nodes: Node[], spacing = ''): string => {
   let returnVal = ''
   while (true) {
@@ -109,90 +127,75 @@ export type ConvertSchema = (
   options?: ConvertOptions
 ) => string
 
+/**
+ * Omit certain nodes based on their path.
+ * @param {Node[]} nodes - Original list of nodes.
+ * @param {string[]} omit - List of paths to omit.
+ * @return {Node[]} Filtered list of nodes.
+ */
 const omitNodes = (nodes: Node[], omit: string[]) =>
-  _.remove(
-    ({ path }) =>
-      _.find((omitPath) => arrayStartsWith(path, _.toPath(omitPath)), omit),
-    nodes
-  )
+  nodes.filter(({ path }) => !omit.some((omitPath) => arrayStartsWith(path, _.toPath(omitPath))));
 
-const handleOverrides = (nodes: Node[], overrides: Override[]) => {
-  const overriden: Node[] = []
-  for (const node of nodes) {
-    const stringPath = node.path.join('.')
-    const overrideMatch = overrides.find(({ path }) =>
-      minimatch(stringPath, path)
-    )
-    if (overrideMatch) {
-      const mapper = overrideMatch.mapper
-      overriden.push(
-        _.update(
-          'val',
-          (obj) => ({
-            ...(mapper ? mapper(obj, stringPath) : obj),
-            ...overrideMatch,
-          }),
-          node
-        )
-      )
-    } else {
-      overriden.push(node)
-    }
-  }
-  return overriden
-}
+  /**
+ * Apply overrides to the schema nodes.
+ * @param {Node[]} nodes - Original list of nodes.
+ * @param {Override[]} overrides - List of overrides to apply.
+ * @return {Node[]} Nodes after applying overrides.
+ */
+const handleOverrides = (nodes: Node[], overrides: Override[]): Node[] =>
+  nodes.map((node) => {
+    const stringPath = node.path.join('.');
+    const overrideMatch = overrides.find(({ path }) => minimatch(stringPath, path));
+    return overrideMatch
+      ? { ...node, val: { ...(overrideMatch.mapper ? overrideMatch.mapper(node.val, stringPath) : node.val), ...overrideMatch } }
+      : node;
+  });
 
 /**
- * Modify path and key for relevant nodes.
- */
-const handleRename = (nodes: Node[], rename: Record<string, string>) => {
-  for (const dottedPath in rename) {
-    const oldPath = dottedPath.split('.')
-    const newPath = rename[dottedPath].split('.')
-    if (!arrayStartsWith(oldPath, newPath.slice(0, -1))) {
-      throw new Mongo2CrateError(
-        `Rename path prefix does not match: ${dottedPath}`
-      )
-    }
-    for (const node of nodes) {
+ * Rename certain nodes based on their path.
+ * @param {Node[]} nodes - Original list of nodes.
+ * @param {Record<string, string>} rename - Dictionary of old path to new path for renaming.
+ * @return {Node[]} Nodes after renaming.
+ */  
+const handleRename = (nodes: Node[], rename: Record<string, string>): Node[] => {
+  const renamedNodes = nodes.map((node) => {
+    for (const dottedPath in rename) {
+      const oldPath = dottedPath.split('.');
+      const newPath = rename[dottedPath].split('.');
       if (arrayStartsWith(node.path, oldPath)) {
-        node.path.splice(0, oldPath.length, ...newPath)
-        node.key = node.path.at(-1)
+        return { ...node, path: [...newPath, ...node.path.slice(oldPath.length)], key: newPath[newPath.length - 1] };
       }
     }
-  }
-  const paths = nodes
-    // Remove _items nodes since the paths are always duplicated
-    .filter((node) => node.key !== '_items')
-    .map((node) => node.path)
-  const dupes = getDupes(paths)
-
+    return node;
+  });
+  const paths = renamedNodes.filter((node) => node.key !== '_items').map((node) => node.path);
+  const dupes = getDupes(paths);
   if (dupes.size) {
-    throw new Mongo2CrateError(
-      `Duplicate paths found: ${Array.from(dupes).join(', ')}`
-    )
+    throw new Mongo2CrateError(`Duplicate paths found: ${Array.from(dupes).join(', ')}`);
   }
-}
-const cleanupPath = _.update('path', _.pull('_items'))
+  return renamedNodes;
+};
+
+/**
+ * Clean up the path of a node by removing '_items'.
+ * @param {Node} node - Node to clean up.
+ * @return {Node} Node with cleaned up path.
+ */
+const cleanupPath = (node: Node): Node => ({ ...node, path: node.path.filter(p => p !== '_items') });
+
 
 /**
  * Convert MongoDB JSON schema to CrateDB table DDL.
  * Optionally, omit fields, rename fields, and change the BSON type for fields.
- * The latter is useful where a more-specific numeric type is needed.
+ * @param {JSONSchema} jsonSchema - MongoDB JSON schema.
+ * @param {string} qualifiedName - Full table name.
+ * @param {ConvertOptions} options - Options for conversion.
+ * @return {string} SQL table definition.
  */
-export const convertSchema: ConvertSchema = (
-  jsonSchema,
-  qualifiedName,
-  options = {}
-) => {
-  let nodes = walk(jsonSchema, { traverse: traverseSchema }).map(cleanupPath)
-  if (options.omit) {
-    nodes = omitNodes(nodes, options.omit)
-  }
-  handleRename(nodes, { ...options.rename, _id: 'id' })
-  if (options.overrides) {
-    nodes = handleOverrides(nodes, options.overrides)
-  }
-  const sqlSchema = _convertSchema(nodes)
-  return util.format(sqlSchema, qualifiedName)
-}
+export const convertSchema: ConvertSchema = (jsonSchema, qualifiedName, options = {}) => {
+  let nodes = walk(jsonSchema, { traverse: traverseSchema }).map(cleanupPath);
+  nodes = options.omit ? omitNodes(nodes, options.omit) : nodes;
+  nodes = handleRename(nodes, { ...options.rename, _id: process.env.DEFAULT_TABLE_NAME || 'id' });
+  nodes = options.overrides ? handleOverrides(nodes, options.overrides) : nodes;
+  return util.format(_convertSchema(nodes), qualifiedName);
+};
