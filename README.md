@@ -1,6 +1,31 @@
-# Mongo to Crate
+# Mongo2Crate
 
-## Sync MongoDB to Crate
+Mongo2Crate is a utility that seamlessly synchronizes data from MongoDB to CrateDB. If you're looking to leverage the scalability and real-time analytics capabilities of CrateDB with data from MongoDB, this tool is indispensable. This guide provides a comprehensive introduction to set up synchronization and convert MongoDB JSON schemas to CrateDB DDL.
+
+## Table of Contents
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Sync MongoDB to CrateDB](#sync-mongodb-to-cratedb)
+- [Convert MongoDB JSON Schema to CrateDB DDL](#convert-mongodb-json-schema-to-cratedb-ddl)
+- [Conclusion](#conclusion)
+
+## Getting Started
+
+### Prerequisites
+- An active MongoDB instance.
+- An active CrateDB instance.
+- A Redis instance (used for synchronization state).
+- Node.js environment.
+
+### Installation
+```bash
+npm install mongo2crate
+```
+
+## Sync MongoDB to CrateDB
+
+Set up the synchronization between MongoDB and CrateDB with the following steps:
 
 ```typescript
 import { initSync, crate } from 'mongo2crate'
@@ -18,39 +43,39 @@ const sync = initSync(
     crate(),
     { omit: ['password', 'unneededStuff'] }
 )
+
 // Log events
 sync.emitter.on('process', console.info)
 sync.emitter.on('error', console.error)
 sync.emitter.on('cursorError', () => process.exit(1))
+
 // Create SQL table from JSON schema
 const schema = await sync.getCollectionSchema(db)
 if (schema) {
-    // The table name is derieved from the collection name and uses
-    // the doc schema by default. These can be overriden in the options.
     await sync.createTableFromSchema(schema)
 }
+
 // Process change stream events
 const changeStream = await sync.processChangeStream()
 changeStream.start()
+
 // Detect schema changes and stop change stream if detected
 const schemaChange = await sync.detectSchemaChange(db)
 schemaChange.start()
 sync.emitter.on('schemaChange', changeStream.stop)
-// Run initial scan of collection batching documents by 1000
+
+// Run initial scan of collection
 const options = { batchSize: 1000 }
 const initialScan = await sync.runInitialScan(options)
 initialScan.start()
 ```
 
-## Convert a JSON schema to Crate DDL
+## Convert MongoDB JSON Schema to CrateDB DDL
 
-The low-level function for converting a JSON schema to a table definition
-is `convertSchema`. You can also use the `createTableFromSchema` method
-on `initSync` to generate the table definition and write it to CrateDB.
+This section guides you through the process of translating MongoDB's JSON schemas into CrateDB's table definitions.
 
 ```typescript
 import { convertSchema } from 'mongo2crate'
-
 const schema = {
     bsonType: 'object',
     additionalProperties: false,
@@ -131,9 +156,8 @@ const schema = {
     },
 }
 
-convertSchema(schema, '"doc"."foobar"', {
+const ddl = convertSchema(schema, '"doc"."foobar"', {
     overrides: [
-        // Glob expression
         { path: 'addresses.address.l*', bsonType: 'double' },
         {
             path: 'description',
@@ -141,41 +165,12 @@ convertSchema(schema, '"doc"."foobar"', {
         },
     ],
 })
+
+console.log(ddl);
 ```
 
-Output:
+When you execute the above, it provides a CrateDB table creation statement. This ensures a smooth transition of your MongoDB collections into CrateDB tables.
 
-```
-CREATE TABLE IF NOT EXISTS "doc"."foobar" (
-  "id" TEXT PRIMARY KEY,
-  "name" TEXT,
-  "description" TEXT NOT NULL INDEX OFF STORAGE WITH (columnstore = false),
-  "numberOfEmployees" TEXT,
-  "notificationPreferences" ARRAY (
-    TEXT
-  ),
-  "addresses" ARRAY (
-    OBJECT(STRICT) AS (
-      "address" OBJECT(STRICT) AS (
-        "street" TEXT,
-        "city" TEXT,
-        "county" TEXT,
-        "state" TEXT,
-        "zip" TEXT,
-        "country" TEXT,
-        "latitude" DOUBLE PRECISION,
-        "longitude" DOUBLE PRECISION
-      ),
-      "name" TEXT,
-      "isPrimary" BOOLEAN
-    )
-  ),
-  "integrations" OBJECT(DYNAMIC) AS (
-    "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" INTEGER,
-      "subscriptionStatus" TEXT
-    )
-  ),
-  "metadata" OBJECT(IGNORED)
-)
-```
+## Conclusion
+
+Mongo2Crate bridges the gap between MongoDB and CrateDB effortlessly. Whether you're migrating data, setting up real-time analytics, or merely exploring both databases, this tool eliminates the need for manual effort and guarantees data consistency. Dive into the world of seamless synchronization with Mongo2Crate!
