@@ -54,10 +54,17 @@ export const initSync = (
     return crate.query(createTableStmt)
   }
 
-  const handleResult = (result: QueryResult | ErrorResult) => {
+  const handleResult = (
+    result: QueryResult | ErrorResult,
+    operationType: ChangeStreamDocument['operationType']
+  ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
-      emit('process', { success: result.rowcount, changeStream: true })
+      emit('process', {
+        success: result.rowcount,
+        changeStream: true,
+        operationCounts: { [operationType]: 1 },
+      })
     } else {
       emit('error', { error: result, changeStream: true })
     }
@@ -72,7 +79,7 @@ export const initSync = (
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result)
+        handleResult(result, doc.operationType)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
@@ -80,7 +87,7 @@ export const initSync = (
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
           const result = await crate.upsert(qualifiedName, document, update)
-          handleResult(result)
+          handleResult(result, doc.operationType)
         }
       } else if (doc.operationType === 'replace') {
         const id = doc.documentKey._id.toString()
@@ -89,11 +96,11 @@ export const initSync = (
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result)
+        handleResult(result, doc.operationType)
       } else if (doc.operationType === 'delete') {
         const id = doc.documentKey._id.toString()
         const result = await crate.deleteById(qualifiedName, id)
-        handleResult(result)
+        handleResult(result, doc.operationType)
       }
     } catch (e) {
       emit('error', { error: e, changeStream: true })
@@ -117,6 +124,7 @@ export const initSync = (
           success: numInserted,
           fail: numFailed,
           [type]: true,
+          operationCounts: { insert: docs.length },
         })
       }
       if ('error' in result) {

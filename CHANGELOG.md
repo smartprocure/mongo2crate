@@ -1,3 +1,7 @@
+# 0.42.0
+
+- Added `operationCounts` to the `process` event.
+
 # 0.41.0
 
 - Removed `options.mapper` in favor of `options.rename` which takes an object of dotted path to renamed dotted path.
