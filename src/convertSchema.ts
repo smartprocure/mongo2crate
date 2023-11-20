@@ -7,6 +7,7 @@ import { JSONSchema, traverseSchema } from 'mongochangestream'
 import { minimatch } from 'minimatch'
 import makeError from 'make-error'
 import { getDupes } from 'dupes-of-hazard'
+import lodash from 'lodash'
 
 export const Mongo2CrateError = makeError('Mongo2CrateError')
 
@@ -117,7 +118,6 @@ const omitNodes = (nodes: Node[], omit: string[]) =>
   )
 
 const handleOverrides = (nodes: Node[], overrides: Override[]) => {
-  const overriden: Node[] = []
   for (const node of nodes) {
     const stringPath = node.path.join('.')
     const overrideMatch = overrides.find(({ path }) =>
@@ -125,21 +125,12 @@ const handleOverrides = (nodes: Node[], overrides: Override[]) => {
     )
     if (overrideMatch) {
       const mapper = overrideMatch.mapper
-      overriden.push(
-        _.update(
-          'val',
-          (obj) => ({
-            ...(mapper ? mapper(obj, stringPath) : obj),
-            ...overrideMatch,
-          }),
-          node
-        )
-      )
-    } else {
-      overriden.push(node)
+      lodash.update(node, 'val', (obj) => ({
+        ...(mapper ? mapper(obj, stringPath) : obj),
+        ...overrideMatch,
+      }))
     }
   }
-  return overriden
 }
 
 /**
@@ -185,13 +176,15 @@ export const convertSchema: ConvertSchema = (
   qualifiedName,
   options = {}
 ) => {
-  let nodes = walk(jsonSchema, { traverse: traverseSchema }).map(cleanupPath)
+  let nodes: Node[] = walk(jsonSchema, { traverse: traverseSchema }).map(
+    cleanupPath
+  )
   if (options.omit) {
     nodes = omitNodes(nodes, options.omit)
   }
   handleRename(nodes, { ...options.rename, _id: 'id' })
   if (options.overrides) {
-    nodes = handleOverrides(nodes, options.overrides)
+    handleOverrides(nodes, options.overrides)
   }
   const sqlSchema = _convertSchema(nodes)
   return util.format(sqlSchema, qualifiedName)

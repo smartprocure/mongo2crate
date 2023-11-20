@@ -1,3 +1,7 @@
+# 0.42.1
+
+- Latest `mongochangestream` - Fix issue where omitting nested paths failed to remove the field from `updateDescription.updatedFields` do to dotted field name.
+
 # 0.42.0
 
 - Added `operationCounts` to the `process` event.
