@@ -1,4 +1,5 @@
 import _ from 'lodash/fp.js'
+
 import { setDefaults } from '../util.js'
 
 export const maybeShowColTypes = (endpoint: string, coltypes: boolean) =>

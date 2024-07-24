@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { convertSchema } from './convertSchema.js'
 
 const schema = {
@@ -309,7 +311,7 @@ describe('convertSchema', () => {
     expect(() =>
       convertSchema(schema, '"doc"."foobar"', {
         rename: {
-          'description': 'name',
+          description: 'name',
         },
       })
     ).toThrow('Duplicate paths found: name')

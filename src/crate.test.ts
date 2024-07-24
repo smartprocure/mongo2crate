@@ -1,8 +1,10 @@
+import { describe, expect, it } from 'vitest'
+
 import {
-  getUniqueKeys,
-  getBulkInsertSqlAndArgs,
-  quoteColumn,
   getAssignmentsAndUpdates,
+  getBulkInsertSqlAndArgs,
+  getUniqueKeys,
+  quoteColumn,
 } from './crate/util.js'
 
 describe('getUniqueKeys', () => {
