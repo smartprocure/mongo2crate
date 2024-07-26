@@ -1,6 +1,6 @@
 {
   "name": "mongo2crate",
-  "version": "0.43.0",
+  "version": "0.44.0",
   "description": "Sync MongoDB to CrateDB and Convert JSON schema to SQL DDL",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,8 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc --declaration",
     "build:watch": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint src/**",
     "fmt": "prettier --ignore-path .gitignore --write './'"
   },
@@ -40,11 +41,11 @@
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@types/debug": "^4.1.12",
     "@types/lodash": "^4.17.7",
-    "@types/node": "^20.14.11",
-    "@typescript-eslint/eslint-plugin": "^7.16.1",
+    "@types/node": "^20.14.12",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
     "prettier": "^3.3.3",
-    "typescript": "5.5.3",
-    "vitest": "^2.0.3"
+    "typescript": "5.5.4",
+    "vitest": "^2.0.4"
   },
   "dependencies": {
     "debug": "^4.3.5",
@@ -52,15 +53,15 @@
     "eventemitter3": "^5.0.1",
     "lodash": "^4.17.21",
     "minimatch": "^10.0.1",
-    "mongochangestream": "^0.45.0",
+    "mongochangestream": "^0.48.0",
     "node-fetch": "^3.3.2",
     "obj-walker": "^2.2.0",
     "p-retry": "^6.2.0",
     "prom-utils": "^0.9.0"
   },
   "peerDependencies": {
-    "ioredis": ">= 5.2.3",
-    "mongodb": ">= 4.10.0"
+    "ioredis": ">= 5.4.1",
+    "mongodb": ">= 6.8.0"
   },
   "prettier": {
     "semi": false,
