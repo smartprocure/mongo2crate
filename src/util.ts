@@ -1,5 +1,5 @@
-import { Document } from 'mongodb'
 import _ from 'lodash/fp.js'
+import { type Document } from 'mongodb'
 
 /**
  * Does arr start with startsWith array.

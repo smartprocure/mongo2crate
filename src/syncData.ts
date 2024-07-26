@@ -1,26 +1,27 @@
+import _debug from 'debug'
+import type { Redis } from 'ioredis'
+import _ from 'lodash/fp.js'
+import mongoChangeStream, {
+  type ChangeStreamOptions,
+  type ScanOptions,
+} from 'mongochangestream'
 import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
   Document,
 } from 'mongodb'
-import type { Redis } from 'ioredis'
-import mongoChangeStream, {
-  ScanOptions,
-  ChangeStreamOptions,
-} from 'mongochangestream'
-import _ from 'lodash/fp.js'
-import { QueueOptions } from 'prom-utils'
-import { Crate, ErrorResult, QueryResult } from './crate.js'
-import { renameKeys, setDefaults, sumByRowcount } from './util.js'
-import {
+import type { QueueOptions } from 'prom-utils'
+
+import { convertSchema } from './convertSchema.js'
+import type { Crate, ErrorResult, QueryResult } from './crate.js'
+import type {
   ConvertOptions,
-  SyncOptions,
   Events,
   ImmutableOption,
+  SyncOptions,
 } from './types.js'
-import { convertSchema } from './convertSchema.js'
-import _debug from 'debug'
+import { renameKeys, setDefaults, sumByRowcount } from './util.js'
 
 const debug = _debug('mongo2crate:sync')
 

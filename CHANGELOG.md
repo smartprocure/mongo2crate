@@ -1,6 +1,11 @@
+# 0.44.0
+
+- Latest `mongochangestream` - Fixed omit bugs.
+- Bumped peer dependencies for `ioredis` and `mongodb`.
+
 # 0.43.0
 
-- Latest `mongochangestream` - Bug fixes.
+- Latest `mongochangestream`
 
 # 0.42.1
 

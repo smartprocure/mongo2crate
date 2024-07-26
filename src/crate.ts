@@ -1,15 +1,16 @@
+import _debug from 'debug'
 import _ from 'lodash/fp.js'
 import fetch from 'node-fetch'
-import {
-  maybeShowColTypes,
-  getInsertSqlAndArgs,
-  getDeleteByIdSqlAndArgs,
-  getBulkInsertSqlAndArgs,
-  getUpsertSqlAndArgs,
-  getAuthHeader,
-} from './crate/util.js'
-import _debug from 'debug'
 import retry from 'p-retry'
+
+import {
+  getAuthHeader,
+  getBulkInsertSqlAndArgs,
+  getDeleteByIdSqlAndArgs,
+  getInsertSqlAndArgs,
+  getUpsertSqlAndArgs,
+  maybeShowColTypes,
+} from './crate/util.js'
 
 const debug = _debug('mongo2crate:crate')
 
