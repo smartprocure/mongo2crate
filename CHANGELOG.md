@@ -1,3 +1,7 @@
+# 0.45.0
+
+- Latest `mongochangestream`
+
 # 0.44.0
 
 - Latest `mongochangestream` - Fixed omit bugs.
