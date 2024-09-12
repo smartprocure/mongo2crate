@@ -1,6 +1,8 @@
 import _ from 'lodash/fp.js'
 import { type Document } from 'mongodb'
 
+import { BulkQueryResult } from './crate.js'
+
 /**
  * Does arr start with startsWith array.
  */
@@ -38,3 +40,17 @@ export const renameKeys = (doc: Document, keys: Record<string, string>) => {
 
 export const sumByRowcount = (num: number) =>
   _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))
+
+export const getFailedRecords = (
+  results: BulkQueryResult['results'],
+  documents: Document[]
+) => {
+  const failed: unknown[] = []
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
+    if (result.rowcount === -2) {
+      failed.push(documents[i])
+    }
+  }
+  return failed
+}

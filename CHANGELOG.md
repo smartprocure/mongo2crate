@@ -1,3 +1,7 @@
+# 0.47.0
+
+-   Added `failedRecords` to `process` event.
+
 # 0.46.0
 
 -   Bump packages, including latest `prom-utils` which allows for throttling of items/sec and bytes/sec.

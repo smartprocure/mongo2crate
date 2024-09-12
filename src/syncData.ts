@@ -21,7 +21,12 @@ import type {
   ImmutableOption,
   SyncOptions,
 } from './types.js'
-import { renameKeys, setDefaults, sumByRowcount } from './util.js'
+import {
+  getFailedRecords,
+  renameKeys,
+  setDefaults,
+  sumByRowcount,
+} from './util.js'
 
 const debug = _debug('mongo2crate:sync')
 
@@ -121,9 +126,11 @@ export const initSync = (
       if ('results' in result) {
         const numInserted = sumByRowcount(1)(result.results)
         const numFailed = sumByRowcount(-2)(result.results)
+        const failedRecords = getFailedRecords(result.results, documents)
         emit('process', {
           success: numInserted,
           fail: numFailed,
+          failedRecords,
           [type]: true,
           operationCounts: { insert: docs.length },
         })
