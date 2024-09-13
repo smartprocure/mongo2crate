@@ -1,5 +1,5 @@
 import { JSONSchema } from 'mongochangestream'
-import type { ChangeStreamDocument } from 'mongodb'
+import type { ChangeStreamDocument, Document } from 'mongodb'
 
 interface RenameOption {
   /** Dotted path to renamed dotted path */
@@ -32,11 +32,13 @@ export interface ConvertOptions extends RenameOption {
 
 export type Events = 'process' | 'error'
 
-type OperationCounts = Partial<Record<ChangeStreamDocument['operationType'], number>>
+type OperationCounts = Partial<
+  Record<ChangeStreamDocument['operationType'], number>
+>
 
 interface BaseProcessEvent {
   type: 'process'
-  failedRecords: unknown[]
+  failedDocs?: Document[]
   operationCounts: OperationCounts
 }
 
@@ -61,6 +63,7 @@ interface InitialScanErrorEvent extends BaseErrorEvent {
 
 interface ChangeStreamErrorEvent extends BaseErrorEvent {
   changeStream: true
+  failedDoc?: Document
 }
 
 export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent
