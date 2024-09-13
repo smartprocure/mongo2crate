@@ -58,7 +58,7 @@
     "minimatch": "^10.0.1",
     "mongochangestream": "^0.50.0",
     "node-fetch": "^3.3.2",
-    "obj-walker": "^2.2.0",
+    "obj-walker": "^2.3.0",
     "p-retry": "^6.2.0",
     "prom-utils": "^0.13.0"
   },
@@ -70,12 +70,8 @@
     "semi": false,
     "singleQuote": true,
     "trailingComma": "es5",
-    "plugins": [
-      "@trivago/prettier-plugin-sort-imports"
-    ],
-    "importOrder": [
-      "^[./]"
-    ],
+    "plugins": ["@trivago/prettier-plugin-sort-imports"],
+    "importOrder": ["^[./]"],
     "importOrderSortSpecifiers": true,
     "importOrderCaseInsensitive": true,
     "importOrderSeparation": true
