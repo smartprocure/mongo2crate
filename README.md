@@ -3,11 +3,11 @@
 ## Sync MongoDB to Crate
 
 ```typescript
-import { initSync, crate } from 'mongo2crate'
 import { default as Redis } from 'ioredis'
+import _ from 'lodash/fp.js'
+import { crate, initSync } from 'mongo2crate'
 import { MongoClient } from 'mongodb'
 import retry from 'p-retry'
-import _ from 'lodash/fp.js'
 
 const client = await MongoClient.connect()
 const db = client.db()
@@ -132,6 +132,7 @@ const schema = {
 }
 
 convertSchema(schema, '"doc"."foobar"', {
+    strictMode: true,
     overrides: [
         // Glob expression
         { path: 'addresses.address.l*', bsonType: 'double' },

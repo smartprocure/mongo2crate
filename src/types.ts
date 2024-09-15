@@ -28,6 +28,13 @@ export interface Override extends Record<string, any> {
 export interface ConvertOptions extends RenameOption {
   omit?: string[]
   overrides?: Override[]
+  /**
+  * If enabled, use OBJECT(STRICT) when additionalProperties is set to false,
+  * OBJECT(DYNAMIC) when additionalProperties is set to true, OBJECT(IGNORE)
+  * when no properties are set. Otherwise,
+  * always use OBJECT(IGNORED).
+  */
+  strictMode?: boolean
 }
 
 export type Events = 'process' | 'error'
