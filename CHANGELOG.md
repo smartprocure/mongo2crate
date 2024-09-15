@@ -1,6 +1,6 @@
 # 0.47.0
 
--   Breaking Change: Default to `OBJECT(IGNORED)` in `convertSchema`. See docs on `strictMode` option.
+-   Breaking Change: Default to `OBJECT(DYNAMIC)` in `convertSchema`. See docs on `strictMode` option.
 -   Added `failedRecords` to `process` event.
 
 # 0.46.0

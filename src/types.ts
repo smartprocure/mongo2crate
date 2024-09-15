@@ -29,11 +29,10 @@ export interface ConvertOptions extends RenameOption {
   omit?: string[]
   overrides?: Override[]
   /**
-  * If enabled, use OBJECT(STRICT) when additionalProperties is set to false,
-  * OBJECT(DYNAMIC) when additionalProperties is set to true, OBJECT(IGNORE)
-  * when no properties are set. Otherwise,
-  * always use OBJECT(IGNORED).
-  */
+   * Enable to take into account `additionalProperties`. Otherwise,
+   * all objects allow for dynamic fields. In both cases, objects
+   * with no defined properties are set to `OBJECT(IGNORED)`.
+   */
   strictMode?: boolean
 }
 
