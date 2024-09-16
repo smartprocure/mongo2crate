@@ -2,6 +2,7 @@
 
 -   Breaking Change: Default to dynamic object policy in `convertSchema`. See docs on `strictMode` option.
 -   Added `failedRecords` to `process` event.
+-   Added `options.mapper` to `initSync`.
 
 # 0.46.0
 
