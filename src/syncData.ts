@@ -11,6 +11,7 @@ import type {
   Collection,
   Document,
 } from 'mongodb'
+import { mapLeaves } from 'obj-walker'
 import type { QueueOptions } from 'prom-utils'
 
 import { convertSchema } from './convertSchema.js'
@@ -36,8 +37,14 @@ export const initSync = (
   crate: Crate,
   options: SyncOptions & mongoChangeStream.SyncOptions = {}
 ) => {
-  const mapper = (doc: Document) =>
+  const mapper = (doc: Document) => {
+    if (options.mapper) {
+      mapLeaves(doc, options.mapper, { modifyInPlace: true })
+    }
     renameKeys(doc, { ...options.rename, _id: 'id' })
+    debug('Mapped doc %o', doc)
+    return doc
+  }
   const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`

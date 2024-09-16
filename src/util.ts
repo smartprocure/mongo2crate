@@ -24,18 +24,22 @@ export const setDefaults = (keys: string[], val: any) => {
   return obj
 }
 
-export const renameKey = (doc: Document, key: string, newKey: string) =>
-  _.flow(_.set(newKey, _.get(key, doc)), _.omit([key]))(doc)
+export const renameKey = (doc: Document, key: string, newKey: string) => {
+  const temp = doc[key]
+  delete doc[key]
+  doc[newKey] = temp
+}
 
+/**
+ * Rename keys, mutating the given object.
+ */
 export const renameKeys = (doc: Document, keys: Record<string, string>) => {
-  let newDoc = doc
   for (const key in keys) {
-    if (_.has(key, doc)) {
+    if (key in doc) {
       const newKey = keys[key]
-      newDoc = renameKey(newDoc, key, newKey)
+      renameKey(doc, key, newKey)
     }
   }
-  return newDoc
 }
 
 export const sumByRowcount = (num: number) =>

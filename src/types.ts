@@ -1,5 +1,6 @@
 import { JSONSchema } from 'mongochangestream'
 import type { ChangeStreamDocument, Document } from 'mongodb'
+import { Node } from 'obj-walker'
 
 interface RenameOption {
   /** Dotted path to renamed dotted path */
@@ -17,6 +18,19 @@ export interface ImmutableOption {
 export interface SyncOptions extends RenameOption {
   schemaName?: string
   tableName?: string
+  /**
+   * Map over values (leaf nodes)
+   * @example
+   * ```typescript
+   * const mapper = (node: Node) => {
+   *   if (typeof node.val === 'string') {
+   *     return truncate(node.val, { length: 250 })
+   *   }
+   *   return node.val
+   * }
+   * ```
+   */
+  mapper?: (node: Node) => unknown
 }
 
 export interface Override extends Record<string, any> {
