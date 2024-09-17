@@ -12,11 +12,22 @@ import retry from 'p-retry'
 const client = await MongoClient.connect()
 const db = client.db()
 
+/**
+ * Use `mapper` to limit the length of strings since there is a 32k
+ * character limit for text fields with the default columnar index.
+ */
+const mapper = (node: Node) => {
+  if (typeof node.val === 'string') {
+    return node.val.slice(0, 250)
+  }
+  return node.val
+}
+
 const sync = initSync(
     new Redis({ keyPrefix: 'cratedb:' }),
     db.collection('myCollection'),
     crate(),
-    { omit: ['password', 'unneededStuff'] }
+    { omit: ['password', 'unneededStuff'], mapper }
 )
 // Log events
 sync.emitter.on('process', console.info)
