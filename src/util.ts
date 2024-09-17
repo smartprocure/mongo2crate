@@ -45,6 +45,10 @@ export const renameKeys = (doc: Document, keys: Record<string, string>) => {
 export const sumByRowcount = (num: number) =>
   _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))
 
+/**
+ * Get the documents that failed to be written during a bulk
+ * query.
+ */
 export const getFailedRecords = (
   results: BulkQueryResult['results'],
   documents: Document[]
