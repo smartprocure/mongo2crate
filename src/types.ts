@@ -19,12 +19,14 @@ export interface SyncOptions extends RenameOption {
   schemaName?: string
   tableName?: string
   /**
-   * Map over values (leaf nodes)
+   * Map over values (leaf nodes). This can be used to limit
+   * the length of strings since there is a 32k character limit
+   * for text fields with the default columnar index.
    * @example
    * ```typescript
    * const mapper = (node: Node) => {
    *   if (typeof node.val === 'string') {
-   *     return truncate(node.val, { length: 250 })
+   *     return node.val.slice(0, 250)
    *   }
    *   return node.val
    * }
