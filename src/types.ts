@@ -1,4 +1,6 @@
 import { JSONSchema } from 'mongochangestream'
+import type { ChangeStreamDocument, Document } from 'mongodb'
+import { Node } from 'obj-walker'
 
 interface RenameOption {
   /** Dotted path to renamed dotted path */
@@ -16,6 +18,21 @@ export interface ImmutableOption {
 export interface SyncOptions extends RenameOption {
   schemaName?: string
   tableName?: string
+  /**
+   * Map over values (leaf nodes). This can be used to limit
+   * the length of strings since there is a 32k character limit
+   * for text fields with the default columnar index.
+   * @example
+   * ```typescript
+   * const mapper = (node: Node) => {
+   *   if (typeof node.val === 'string') {
+   *     return node.val.slice(0, 250)
+   *   }
+   *   return node.val
+   * }
+   * ```
+   */
+  mapper?: (node: Node) => unknown
 }
 
 export interface Override extends Record<string, any> {
@@ -27,6 +44,48 @@ export interface Override extends Record<string, any> {
 export interface ConvertOptions extends RenameOption {
   omit?: string[]
   overrides?: Override[]
+  /**
+   * Enable to take into account `additionalProperties`. Otherwise,
+   * all objects allow for dynamic fields. In both cases, objects
+   * with no defined properties are set to `OBJECT(IGNORED)`.
+   */
+  strictMode?: boolean
 }
 
 export type Events = 'process' | 'error'
+
+type OperationCounts = Partial<
+  Record<ChangeStreamDocument['operationType'], number>
+>
+
+interface BaseProcessEvent {
+  type: 'process'
+  failedDocs?: Document[]
+  operationCounts: OperationCounts
+}
+
+interface InitialScanProcessEvent extends BaseProcessEvent {
+  initialScan: true
+}
+
+interface ChangeStreamProcessEvent extends BaseProcessEvent {
+  changeStream: true
+}
+
+export type ProcessEvent = InitialScanProcessEvent | ChangeStreamProcessEvent
+
+interface BaseErrorEvent {
+  type: 'error'
+  error: unknown
+}
+
+interface InitialScanErrorEvent extends BaseErrorEvent {
+  initialScan: true
+}
+
+interface ChangeStreamErrorEvent extends BaseErrorEvent {
+  changeStream: true
+  failedDoc?: Document
+}
+
+export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent

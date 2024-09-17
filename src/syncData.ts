@@ -11,6 +11,7 @@ import type {
   Collection,
   Document,
 } from 'mongodb'
+import { mapLeaves } from 'obj-walker'
 import type { QueueOptions } from 'prom-utils'
 
 import { convertSchema } from './convertSchema.js'
@@ -21,7 +22,12 @@ import type {
   ImmutableOption,
   SyncOptions,
 } from './types.js'
-import { renameKeys, setDefaults, sumByRowcount } from './util.js'
+import {
+  getFailedRecords,
+  renameKeys,
+  setDefaults,
+  sumByRowcount,
+} from './util.js'
 
 const debug = _debug('mongo2crate:sync')
 
@@ -31,8 +37,14 @@ export const initSync = (
   crate: Crate,
   options: SyncOptions & mongoChangeStream.SyncOptions = {}
 ) => {
-  const mapper = (doc: Document) =>
+  const mapper = (doc: Document) => {
+    if (options.mapper) {
+      mapLeaves(doc, options.mapper, { modifyInPlace: true })
+    }
     renameKeys(doc, { ...options.rename, _id: 'id' })
+    debug('Mapped doc %o', doc)
+    return doc
+  }
   const schemaName = options.schemaName || 'doc'
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
@@ -57,7 +69,8 @@ export const initSync = (
 
   const handleResult = (
     result: QueryResult | ErrorResult,
-    operationType: ChangeStreamDocument['operationType']
+    operationType: ChangeStreamDocument['operationType'],
+    doc: Document
   ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
@@ -67,7 +80,7 @@ export const initSync = (
         operationCounts: { [operationType]: 1 },
       })
     } else {
-      emit('error', { error: result, changeStream: true })
+      emit('error', { error: result, changeStream: true, failedDoc: doc })
     }
   }
   /**
@@ -80,7 +93,7 @@ export const initSync = (
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType)
+        handleResult(result, doc.operationType, document)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
@@ -88,7 +101,7 @@ export const initSync = (
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
           const result = await crate.upsert(qualifiedName, document, update)
-          handleResult(result, doc.operationType)
+          handleResult(result, doc.operationType, document)
         }
       } else if (doc.operationType === 'replace') {
         const id = doc.documentKey._id.toString()
@@ -97,11 +110,11 @@ export const initSync = (
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType)
+        handleResult(result, doc.operationType, document)
       } else if (doc.operationType === 'delete') {
         const id = doc.documentKey._id.toString()
         const result = await crate.deleteById(qualifiedName, id)
-        handleResult(result, doc.operationType)
+        handleResult(result, doc.operationType, { id })
       }
     } catch (e) {
       emit('error', { error: e, changeStream: true })
@@ -119,11 +132,15 @@ export const initSync = (
       const result = await crate.bulkInsert(qualifiedName, documents)
       debug('Bulk insert result %O', result)
       if ('results' in result) {
+        // 1 indicates success
         const numInserted = sumByRowcount(1)(result.results)
+        // -2 indicates failure
         const numFailed = sumByRowcount(-2)(result.results)
+        const failedDocs = getFailedRecords(result.results, documents)
         emit('process', {
           success: numInserted,
           fail: numFailed,
+          ...(failedDocs.length && { failedDocs }),
           [type]: true,
           operationCounts: { insert: docs.length },
         })

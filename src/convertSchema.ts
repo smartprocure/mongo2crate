@@ -52,7 +52,21 @@ const flagsToSql = (flags?: string[]) =>
 const renderCommaIf = (cond: boolean) => (cond ? ',' : '')
 const padding = '  '
 
-const _convertSchema = (nodes: Node[], spacing = ''): string => {
+const columnPolicy = (policy: string) => ` WITH (column_policy = '${policy}')`
+
+const getObjectPolicy = (node: Node, strictMode: boolean) => {
+  const noAdditionalProps = node.val.additionalProperties === false
+  if (strictMode && noAdditionalProps) {
+    return 'strict'
+  }
+  return 'dynamic'
+}
+
+const _convertSchema = (
+  nodes: Node[],
+  strictMode = false,
+  spacing = ''
+): string => {
   let returnVal = ''
   while (true) {
     const node = nodes[0]
@@ -65,11 +79,9 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
     if (node.isRoot) {
       return (
         'CREATE TABLE IF NOT EXISTS %s (\n' +
-        _convertSchema(nodes.slice(1), padding) +
+        _convertSchema(nodes.slice(1), strictMode, padding) +
         ')' +
-        (node.val.additionalProperties
-          ? " WITH (column_policy = 'dynamic')"
-          : '')
+        columnPolicy(getObjectPolicy(node, strictMode))
       )
     }
     // Scalar fields, including objects with no defined fields
@@ -93,12 +105,10 @@ const _convertSchema = (nodes: Node[], spacing = ''): string => {
       const sqlType =
         node.val.bsonType === 'array'
           ? 'ARRAY'
-          : `OBJECT(${
-              node.val.additionalProperties === false ? 'STRICT' : 'DYNAMIC'
-            }) AS`
+          : `OBJECT(${getObjectPolicy(node, strictMode).toUpperCase()}) AS`
       returnVal +=
         `${spacing}${field}${sqlType} (\n` +
-        _convertSchema(childNodes, newSpacing) +
+        _convertSchema(childNodes, strictMode, newSpacing) +
         `${spacing})${comma}\n`
       nodes = nodes.slice(index + 1)
     }
@@ -187,6 +197,6 @@ export const convertSchema: ConvertSchema = (
   if (options.overrides) {
     handleOverrides(nodes, options.overrides)
   }
-  const sqlSchema = _convertSchema(nodes)
+  const sqlSchema = _convertSchema(nodes, options.strictMode)
   return util.format(sqlSchema, qualifiedName)
 }

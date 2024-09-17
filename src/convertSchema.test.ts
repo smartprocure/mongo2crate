@@ -76,21 +76,44 @@ const schema = {
   },
 }
 
-const dynamicColumnSchema = {
-  bsonType: 'object',
-  additionalProperties: true,
-  required: ['name'],
-  properties: {
-    _id: {
-      bsonType: 'objectId',
-    },
-    name: { bsonType: ['string', 'null'] },
-  },
-}
-
 describe('convertSchema', () => {
   it('should convert the schema', () => {
-    expect(convertSchema(schema, '"doc"."foobar"'))
+    const sql = convertSchema(schema, '"doc"."foobar"')
+    expect(sql).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" TEXT,
+        "country" TEXT,
+        "latitude" BIGINT,
+        "longitude" BIGINT
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" BIGINT,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+) WITH (column_policy = 'dynamic')`)
+  })
+  it('should convert the schema with strictMode enabled', () => {
+    expect(convertSchema(schema, '"doc"."foobar"', { strictMode: true }))
       .toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT,
@@ -122,14 +145,7 @@ describe('convertSchema', () => {
     )
   ),
   "metadata" OBJECT(IGNORED)
-)`)
-  })
-  it('should convert the schema with dynamic column policy', () => {
-    expect(convertSchema(dynamicColumnSchema, '"doc"."foobar_dynamic"'))
-      .toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar_dynamic" (
-  "id" TEXT PRIMARY KEY,
-  "name" TEXT
-) WITH (column_policy = 'dynamic')`)
+) WITH (column_policy = 'strict')`)
   })
   it('should omit fields from the schema', () => {
     expect(
@@ -145,8 +161,8 @@ describe('convertSchema', () => {
     TEXT
   ),
   "addresses" ARRAY (
-    OBJECT(STRICT) AS (
-      "address" OBJECT(STRICT) AS (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
         "street" TEXT,
         "city" TEXT,
         "county" TEXT,
@@ -160,7 +176,7 @@ describe('convertSchema', () => {
     )
   ),
   "metadata" OBJECT(IGNORED)
-)`)
+) WITH (column_policy = 'dynamic')`)
   })
   it('should override bsonType and convert flags', () => {
     const result = convertSchema(schema, '"doc"."foobar"', {
@@ -186,8 +202,8 @@ describe('convertSchema', () => {
     TEXT
   ),
   "addresses" ARRAY (
-    OBJECT(STRICT) AS (
-      "address" OBJECT(STRICT) AS (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
         "street" TEXT,
         "city" TEXT,
         "county" TEXT,
@@ -208,7 +224,7 @@ describe('convertSchema', () => {
     )
   ),
   "metadata" OBJECT(IGNORED)
-)`)
+) WITH (column_policy = 'dynamic')`)
   })
   it('should convert with mapper', () => {
     const result = convertSchema(schema, '"doc"."foobar"', {
@@ -233,8 +249,8 @@ describe('convertSchema', () => {
     TEXT
   ),
   "addresses" ARRAY (
-    OBJECT(STRICT) AS (
-      "address" OBJECT(STRICT) AS (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
         "street" TEXT,
         "city" TEXT,
         "county" TEXT,
@@ -255,7 +271,7 @@ describe('convertSchema', () => {
     )
   ),
   "metadata" OBJECT(IGNORED)
-)`)
+) WITH (column_policy = 'dynamic')`)
   })
   it('should rename fields in the schema', () => {
     const result = convertSchema(schema, '"doc"."foobar"', {
@@ -274,8 +290,8 @@ describe('convertSchema', () => {
     TEXT
   ),
   "addresses" ARRAY (
-    OBJECT(STRICT) AS (
-      "address1" OBJECT(STRICT) AS (
+    OBJECT(DYNAMIC) AS (
+      "address1" OBJECT(DYNAMIC) AS (
         "street" TEXT,
         "city" TEXT,
         "county" TEXT,
@@ -296,7 +312,7 @@ describe('convertSchema', () => {
     )
   ),
   "metadata" OBJECT(IGNORED)
-)`)
+) WITH (column_policy = 'dynamic')`)
   })
   it('should throw an exception if a rename field path prefix is different', () => {
     expect(() =>
