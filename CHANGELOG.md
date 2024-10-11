@@ -1,3 +1,9 @@
+# 0.48.0
+
+-   Added a `mapSchema` option as an "escape hatch" to allow preprocessing each
+    node in the input object (using `map` from `obj-walker`) before converting
+    it to a Crate schema.
+
 # 0.47.0
 
 -   Breaking Change: Default to dynamic object policy in `convertSchema`. See docs on `strictMode` option.
