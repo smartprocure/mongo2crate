@@ -1,3 +1,7 @@
+# 0.48.0
+
+-   Only return `_id`s for `failedDocs` and `failedDoc` in emitted events.
+
 # 0.47.0
 
 -   Breaking Change: Default to dynamic object policy in `convertSchema`. See docs on `strictMode` option.

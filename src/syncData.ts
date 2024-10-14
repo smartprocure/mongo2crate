@@ -10,6 +10,7 @@ import type {
   ChangeStreamInsertDocument,
   Collection,
   Document,
+  ObjectId,
 } from 'mongodb'
 import { mapLeaves } from 'obj-walker'
 import type { QueueOptions } from 'prom-utils'
@@ -70,7 +71,7 @@ export const initSync = (
   const handleResult = (
     result: QueryResult | ErrorResult,
     operationType: ChangeStreamDocument['operationType'],
-    doc: Document
+    _id: ObjectId
   ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
@@ -80,7 +81,7 @@ export const initSync = (
         operationCounts: { [operationType]: 1 },
       })
     } else {
-      emit('error', { error: result, changeStream: true, failedDoc: doc })
+      emit('error', { error: result, changeStream: true, failedDoc: _id })
     }
   }
   /**
@@ -92,29 +93,31 @@ export const initSync = (
     try {
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
+        const _id = doc.documentKey._id
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, document)
+        handleResult(result, doc.operationType, _id)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
         const removed = removedFields && setDefaults(removedFields, null)
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
+          const _id = doc.documentKey._id
           const result = await crate.upsert(qualifiedName, document, update)
-          handleResult(result, doc.operationType, document)
+          handleResult(result, doc.operationType, _id)
         }
       } else if (doc.operationType === 'replace') {
-        const id = doc.documentKey._id.toString()
+        const _id = doc.documentKey._id
         // Delete
-        await crate.deleteById(qualifiedName, id)
+        await crate.deleteById(qualifiedName, _id.toString())
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, document)
+        handleResult(result, doc.operationType, _id)
       } else if (doc.operationType === 'delete') {
-        const id = doc.documentKey._id.toString()
-        const result = await crate.deleteById(qualifiedName, id)
-        handleResult(result, doc.operationType, { id })
+        const _id = doc.documentKey._id
+        const result = await crate.deleteById(qualifiedName, _id.toString())
+        handleResult(result, doc.operationType, _id)
       }
     } catch (e) {
       emit('error', { error: e, changeStream: true })
@@ -136,7 +139,7 @@ export const initSync = (
         const numInserted = sumByRowcount(1)(result.results)
         // -2 indicates failure
         const numFailed = sumByRowcount(-2)(result.results)
-        const failedDocs = getFailedRecords(result.results, documents)
+        const failedDocs = getFailedRecords(result.results, docs)
         emit('process', {
           success: numInserted,
           fail: numFailed,

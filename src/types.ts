@@ -1,5 +1,5 @@
 import { JSONSchema } from 'mongochangestream'
-import type { ChangeStreamDocument, Document } from 'mongodb'
+import type { ChangeStreamDocument, Document, ObjectId } from 'mongodb'
 import { Node } from 'obj-walker'
 
 interface RenameOption {
@@ -60,7 +60,8 @@ type OperationCounts = Partial<
 
 interface BaseProcessEvent {
   type: 'process'
-  failedDocs?: Document[]
+  /** _id of failed documents */
+  failedDocs?: ObjectId[]
   operationCounts: OperationCounts
 }
 
@@ -85,7 +86,8 @@ interface InitialScanErrorEvent extends BaseErrorEvent {
 
 interface ChangeStreamErrorEvent extends BaseErrorEvent {
   changeStream: true
-  failedDoc?: Document
+  /** _id of failed document */
+  failedDoc?: ObjectId
 }
 
 export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent
