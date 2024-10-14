@@ -1,5 +1,9 @@
 import _ from 'lodash/fp.js'
-import { ChangeStreamInsertDocument, type Document } from 'mongodb'
+import {
+  ChangeStreamDocument,
+  ChangeStreamInsertDocument,
+  type Document,
+} from 'mongodb'
 
 import { BulkQueryResult } from './crate.js'
 
@@ -61,4 +65,27 @@ export const getFailedRecords = (
     }
   }
   return failed
+}
+
+export const partitionEvents = (docs: ChangeStreamDocument[]) => {
+  const groups = []
+  let subGroup = []
+  let previousOperationType: ChangeStreamDocument['operationType'] | undefined =
+    undefined
+
+  for (const doc of docs) {
+    const operationType = doc.operationType
+    if (operationType !== 'insert' || previousOperationType !== operationType) {
+      if (subGroup.length) {
+        groups.push(subGroup)
+      }
+      subGroup = []
+    }
+    subGroup.push(doc)
+    previousOperationType = operationType
+  }
+  if (subGroup.length) {
+    groups.push(subGroup)
+  }
+  return groups
 }

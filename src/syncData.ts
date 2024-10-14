@@ -25,6 +25,7 @@ import type {
 } from './types.js'
 import {
   getFailedRecords,
+  partitionEvents,
   renameKeys,
   setDefaults,
   sumByRowcount,
@@ -159,18 +160,22 @@ export const initSync = (
   const processChangeStream = (
     options?: QueueOptions & ChangeStreamOptions & ImmutableOption
   ) =>
-    options?.immutable
-      ? // The collection is immutable and therefore only inserts will occur
-        sync.processChangeStream(
-          (docs) =>
-            processInsertRecords(
-              // Typscript hack
-              docs as unknown as ChangeStreamInsertDocument[],
-              'changeStream'
-            ),
-          // Ensure we only receive insert events
-          { ...options, operationTypes: ['insert'] }
-        )
+    options?.autoOptimizeInserts || options?.immutable
+      ? sync.processChangeStream(async (docs) => {
+          const partitions = partitionEvents(docs)
+          for (const partition of partitions) {
+            // We have more than one event so this is a grouped set of inserts
+            if (partition.length > 1) {
+              await processInsertRecords(
+                // We know these are going to be insert events
+                partition as unknown as ChangeStreamInsertDocument[],
+                'changeStream'
+              )
+            } else {
+              await processChangeStreamRecords(partition)
+            }
+          }
+        }, options)
       : sync.processChangeStream(processChangeStreamRecords, {
           ...options,
           // We can only handle one record at a time
