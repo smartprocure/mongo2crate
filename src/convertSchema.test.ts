@@ -232,7 +232,7 @@ describe('convertSchema', () => {
       overrides: [
         {
           path: '*',
-          mapper(obj) {
+          mapper: (obj) => {
             if (obj.bsonType === 'number') {
               return { ...obj, bsonType: 'double' }
             }
@@ -286,7 +286,7 @@ describe('convertSchema', () => {
         // PRECISION
         {
           path: '*',
-          mapper(obj) {
+          mapper: (obj) => {
             if (obj.bsonType === 'number') {
               return { ...obj, bsonType: 'double' }
             }
