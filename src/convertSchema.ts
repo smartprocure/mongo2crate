@@ -128,18 +128,26 @@ const omitNodes = (nodes: Node[], omit: string[]) =>
     nodes
   )
 
+/**
+ * Applies matching overrides to each node.
+ *
+ * If multiple overrides match the node's path (e.g. `*` and `foo.*` both match
+ * the path `foo.bar`), they are applied in sequence, such that the output of
+ * each override is passed as input to the next.
+ */
 const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   for (const node of nodes) {
     const stringPath = node.path.join('.')
-    const overrideMatch = overrides.find(({ path }) =>
-      minimatch(stringPath, path)
-    )
-    if (overrideMatch) {
-      const mapper = overrideMatch.mapper
-      lodash.update(node, 'val', (obj) => ({
-        ...(mapper ? mapper(obj, stringPath) : obj),
-        ...overrideMatch,
-      }))
+
+    for (const override of overrides) {
+      const { path, mapper } = override
+
+      if (minimatch(stringPath, path)) {
+        lodash.update(node, 'val', (obj) => ({
+          ...(mapper ? mapper(obj, stringPath) : obj),
+          ...override,
+        }))
+      }
     }
   }
 }

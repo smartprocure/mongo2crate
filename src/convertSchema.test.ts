@@ -274,6 +274,65 @@ describe('convertSchema', () => {
   "metadata" OBJECT(IGNORED)
 ) WITH (column_policy = 'dynamic')`)
   })
+  it('should apply multiple overrides in sequence', () => {
+    const result = convertSchema(schema, '"doc"."foobar"', {
+      overrides: [
+        // First, change this field from TEXT to BIGINT
+        {
+          path: '*.zip',
+          bsonType: 'number',
+        },
+        // Then, change all BIGINT fields (including the one above) to DOUBLE
+        // PRECISION
+        {
+          path: '*',
+          mapper(obj) {
+            if (obj.bsonType === 'number') {
+              return { ...obj, bsonType: 'double' }
+            }
+            return obj
+          },
+        },
+        // Then, change this field back to BIGINT
+        {
+          path: 'addresses.address.latitude',
+          bsonType: 'number',
+        },
+      ],
+    })
+    expect(result).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" DOUBLE PRECISION,
+        "country" TEXT,
+        "latitude" BIGINT,
+        "longitude" DOUBLE PRECISION
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" DOUBLE PRECISION,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+) WITH (column_policy = 'dynamic')`)
+  })
   it('should rename fields in the schema', () => {
     const result = convertSchema(schema, '"doc"."foobar"', {
       rename: {
