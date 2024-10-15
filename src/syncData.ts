@@ -166,6 +166,7 @@ export const initSync = (
           for (const partition of partitions) {
             // We have more than one event so this is a grouped set of inserts
             if (partition.length > 1) {
+              debug('Change stream insert batch of length %d', partition.length)
               await processInsertRecords(
                 // We know these are going to be insert events
                 partition as unknown as ChangeStreamInsertDocument[],
