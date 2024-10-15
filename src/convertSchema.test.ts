@@ -1,3 +1,4 @@
+import _ from 'lodash/fp.js'
 import { describe, expect, it } from 'vitest'
 
 import { convertSchema } from './convertSchema.js'
@@ -231,7 +232,7 @@ describe('convertSchema', () => {
       overrides: [
         {
           path: '*',
-          mapper(obj) {
+          mapper: (obj) => {
             if (obj.bsonType === 'number') {
               return { ...obj, bsonType: 'double' }
             }
@@ -258,6 +259,65 @@ describe('convertSchema', () => {
         "zip" TEXT,
         "country" TEXT,
         "latitude" DOUBLE PRECISION,
+        "longitude" DOUBLE PRECISION
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" DOUBLE PRECISION,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+) WITH (column_policy = 'dynamic')`)
+  })
+  it('should apply multiple overrides in sequence', () => {
+    const result = convertSchema(schema, '"doc"."foobar"', {
+      overrides: [
+        // First, change this field from TEXT to BIGINT
+        {
+          path: '*.zip',
+          bsonType: 'number',
+        },
+        // Then, change all BIGINT fields (including the one above) to DOUBLE
+        // PRECISION
+        {
+          path: '*',
+          mapper: (obj) => {
+            if (obj.bsonType === 'number') {
+              return { ...obj, bsonType: 'double' }
+            }
+            return obj
+          },
+        },
+        // Then, change this field back to BIGINT
+        {
+          path: 'addresses.address.latitude',
+          bsonType: 'number',
+        },
+      ],
+    })
+    expect(result).toEqual(`CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" DOUBLE PRECISION,
+        "country" TEXT,
+        "latitude" BIGINT,
         "longitude" DOUBLE PRECISION
       ),
       "name" TEXT,
@@ -331,5 +391,66 @@ describe('convertSchema', () => {
         },
       })
     ).toThrow('Duplicate paths found: name')
+  })
+  describe('the `mapSchema` option', () => {
+    it('can replace a leaf node', () => {
+      expect(
+        convertSchema(schema, '"doc"."foobar"', {
+          mapSchema: ({ path, val }) => {
+            if (
+              _.isEqual(path, [
+                'properties',
+                'addresses',
+                'items',
+                'properties',
+                'address',
+                'properties',
+                'zip',
+                'bsonType',
+              ])
+            ) {
+              // Was originally 'string'. In the expected output below, TEXT is
+              // replaced with BIGINT.
+              return 'number'
+            }
+
+            return val
+          },
+        })
+      ).toEqual(
+        `CREATE TABLE IF NOT EXISTS "doc"."foobar" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT,
+  "description" TEXT,
+  "numberOfEmployees" TEXT,
+  "notificationPreferences" ARRAY (
+    TEXT
+  ),
+  "addresses" ARRAY (
+    OBJECT(DYNAMIC) AS (
+      "address" OBJECT(DYNAMIC) AS (
+        "street" TEXT,
+        "city" TEXT,
+        "county" TEXT,
+        "state" TEXT,
+        "zip" BIGINT,
+        "country" TEXT,
+        "latitude" BIGINT,
+        "longitude" BIGINT
+      ),
+      "name" TEXT,
+      "isPrimary" BOOLEAN
+    )
+  ),
+  "integrations" OBJECT(DYNAMIC) AS (
+    "stripe" OBJECT(DYNAMIC) AS (
+      "priceId" BIGINT,
+      "subscriptionStatus" TEXT
+    )
+  ),
+  "metadata" OBJECT(IGNORED)
+) WITH (column_policy = 'dynamic')`
+      )
+    })
   })
 })

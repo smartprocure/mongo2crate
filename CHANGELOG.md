@@ -1,6 +1,16 @@
+# 0.48.0
+
+-   **Breaking Change**: When there are multiple `overrides` that match the same
+    path (e.g. `*` and `foo.*` both match the path `foo.bar`), they will now be
+    applied in sequence, where the output of each override is passed as input to
+    the next.
+-   Added a `mapSchema` option as an "escape hatch" to allow preprocessing each
+    node in the input object (using `map` from `obj-walker`) before converting
+    it to a Crate schema.
+
 # 0.47.0
 
--   Breaking Change: Default to dynamic object policy in `convertSchema`. See docs on `strictMode` option.
+-   **Breaking Change**: Default to dynamic object policy in `convertSchema`. See docs on `strictMode` option.
 -   Added `failedRecords` to `process` event and `failedRecord` to `error` for changestream events where applicable.
 -   Added `options.mapper` to `initSync`.
 
