@@ -1,5 +1,9 @@
 import _ from 'lodash/fp.js'
-import { type Document } from 'mongodb'
+import {
+  ChangeStreamDocument,
+  ChangeStreamInsertDocument,
+  type Document,
+} from 'mongodb'
 
 import { BulkQueryResult } from './crate.js'
 
@@ -46,19 +50,42 @@ export const sumByRowcount = (num: number) =>
   _.sumBy(({ rowcount }) => (rowcount === num ? 1 : 0))
 
 /**
- * Get the documents that failed to be written during a bulk
+ * Get the document ids that failed to be written during a bulk
  * query.
  */
 export const getFailedRecords = (
   results: BulkQueryResult['results'],
-  documents: Document[]
+  documents: ChangeStreamInsertDocument[]
 ) => {
   const failed: unknown[] = []
   for (let i = 0; i < results.length; i++) {
     const result = results[i]
     if (result.rowcount === -2) {
-      failed.push(documents[i])
+      failed.push(documents[i].documentKey._id)
     }
   }
   return failed
+}
+
+export const partitionEvents = (docs: ChangeStreamDocument[]) => {
+  const groups = []
+  let subGroup = []
+  let previousOperationType: ChangeStreamDocument['operationType'] | undefined =
+    undefined
+
+  for (const doc of docs) {
+    const operationType = doc.operationType
+    if (operationType !== 'insert' || previousOperationType !== operationType) {
+      if (subGroup.length) {
+        groups.push(subGroup)
+      }
+      subGroup = []
+    }
+    subGroup.push(doc)
+    previousOperationType = operationType
+  }
+  if (subGroup.length) {
+    groups.push(subGroup)
+  }
+  return groups
 }

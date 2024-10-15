@@ -1,5 +1,5 @@
 import { JSONSchema } from 'mongochangestream'
-import type { ChangeStreamDocument, Document } from 'mongodb'
+import type { ChangeStreamDocument, ObjectId } from 'mongodb'
 import { Mapper, Node } from 'obj-walker'
 
 interface RenameOption {
@@ -7,12 +7,19 @@ interface RenameOption {
   rename?: Record<string, string>
 }
 
-export interface ImmutableOption {
+export interface OptimizationOptions {
   /**
    * If the collection is immutable set this to true. This allows batch processing
    * where all change stream events are assumed to be inserts.
+   * @deprecated Use the autoOptimizeInserts option instead.
    */
   immutable?: boolean
+  /**
+   * Automatically optimize inserts by batching them together and flushing
+   * the insert queue when a non-insert event is received or a queue threshold
+   * is met - length, size in bytes, timeout, etc.
+   */
+  autoOptimizeInserts?: boolean
 }
 
 export interface SyncOptions extends RenameOption {
@@ -82,7 +89,8 @@ type OperationCounts = Partial<
 
 interface BaseProcessEvent {
   type: 'process'
-  failedDocs?: Document[]
+  /** _id of failed documents */
+  failedDocs?: ObjectId[]
   operationCounts: OperationCounts
 }
 
@@ -107,7 +115,8 @@ interface InitialScanErrorEvent extends BaseErrorEvent {
 
 interface ChangeStreamErrorEvent extends BaseErrorEvent {
   changeStream: true
-  failedDoc?: Document
+  /** _id of failed document */
+  failedDoc?: ObjectId
 }
 
 export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent
