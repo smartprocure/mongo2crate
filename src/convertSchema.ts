@@ -5,7 +5,7 @@ import makeError from 'make-error'
 import { minimatch } from 'minimatch'
 import { type JSONSchema, traverseSchema } from 'mongochangestream'
 import util from 'node:util'
-import { type Node, walk } from 'obj-walker'
+import { map, type Node, walk } from 'obj-walker'
 
 import type { ConvertOptions, Override } from './types.js'
 import { arrayStartsWith } from './util.js'
@@ -128,18 +128,26 @@ const omitNodes = (nodes: Node[], omit: string[]) =>
     nodes
   )
 
+/**
+ * Applies matching overrides to each node.
+ *
+ * If multiple overrides match the node's path (e.g. `*` and `foo.*` both match
+ * the path `foo.bar`), they are applied in sequence, such that the output of
+ * each override is passed as input to the next.
+ */
 const handleOverrides = (nodes: Node[], overrides: Override[]) => {
   for (const node of nodes) {
     const stringPath = node.path.join('.')
-    const overrideMatch = overrides.find(({ path }) =>
-      minimatch(stringPath, path)
-    )
-    if (overrideMatch) {
-      const mapper = overrideMatch.mapper
-      lodash.update(node, 'val', (obj) => ({
-        ...(mapper ? mapper(obj, stringPath) : obj),
-        ...overrideMatch,
-      }))
+
+    for (const override of overrides) {
+      const { path, mapper } = override
+
+      if (minimatch(stringPath, path)) {
+        lodash.update(node, 'val', (obj) => ({
+          ...(mapper ? mapper(obj, stringPath) : obj),
+          ...override,
+        }))
+      }
     }
   }
 }
@@ -179,24 +187,29 @@ const cleanupPath = _.update('path', _.pull('_items'))
 
 /**
  * Convert MongoDB JSON schema to CrateDB table DDL.
- * Optionally, omit fields, rename fields, and change the BSON type for fields.
- * The latter is useful where a more-specific numeric type is needed.
+ *
+ * There are options that allow you to preprocess nodes, omit fields, rename
+ * fields, and change the BSON type for fields (e.g. when a more specific
+ * numeric type is needed). @see {@link ConvertOptions} for details.
  */
 export const convertSchema: ConvertSchema = (
   jsonSchema,
   qualifiedName,
-  options = {}
+  { mapSchema, omit, rename, overrides, strictMode } = {}
 ) => {
+  if (mapSchema) {
+    jsonSchema = map(jsonSchema, mapSchema)
+  }
   let nodes: Node[] = walk(jsonSchema, { traverse: traverseSchema }).map(
     cleanupPath
   )
-  if (options.omit) {
-    nodes = omitNodes(nodes, options.omit)
+  if (omit) {
+    nodes = omitNodes(nodes, omit)
   }
-  handleRename(nodes, { ...options.rename, _id: 'id' })
-  if (options.overrides) {
-    handleOverrides(nodes, options.overrides)
+  handleRename(nodes, { ...rename, _id: 'id' })
+  if (overrides) {
+    handleOverrides(nodes, overrides)
   }
-  const sqlSchema = _convertSchema(nodes, options.strictMode)
+  const sqlSchema = _convertSchema(nodes, strictMode)
   return util.format(sqlSchema, qualifiedName)
 }
