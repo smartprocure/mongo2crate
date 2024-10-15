@@ -3,6 +3,7 @@
 -   **Deprecated** `immutable` option in favor of `autoOptimizeInserts` option that works well in an insert-only
     or insert-heavy scenario. If you only want `insert` events, you must pass `{operationTypes: ['insert']}`.
 -   Only return `_id`s for `failedDocs` and `failedDoc` in emitted events.
+-   Bumped dependencies.
 
 # 0.48.0
 
