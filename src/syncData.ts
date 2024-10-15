@@ -20,7 +20,7 @@ import type { Crate, ErrorResult, QueryResult } from './crate.js'
 import type {
   ConvertOptions,
   Events,
-  ImmutableOption,
+  OptimizationOptions,
   SyncOptions,
 } from './types.js'
 import {
@@ -158,7 +158,7 @@ export const initSync = (
   }
 
   const processChangeStream = (
-    options?: QueueOptions & ChangeStreamOptions & ImmutableOption
+    options?: QueueOptions & ChangeStreamOptions & OptimizationOptions
   ) =>
     options?.autoOptimizeInserts || options?.immutable
       ? sync.processChangeStream(async (docs) => {

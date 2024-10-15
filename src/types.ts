@@ -7,7 +7,7 @@ interface RenameOption {
   rename?: Record<string, string>
 }
 
-export interface ImmutableOption {
+export interface OptimizationOptions {
   /**
    * If the collection is immutable set this to true. This allows batch processing
    * where all change stream events are assumed to be inserts.
