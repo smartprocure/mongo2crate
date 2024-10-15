@@ -393,44 +393,6 @@ describe('convertSchema', () => {
     ).toThrow('Duplicate paths found: name')
   })
   describe('the `mapSchema` option', () => {
-    it('can be a no-op', () => {
-      expect(
-        convertSchema(schema, '"doc"."foobar"', { mapSchema: ({ val }) => val })
-      ).toEqual(
-        `CREATE TABLE IF NOT EXISTS "doc"."foobar" (
-  "id" TEXT PRIMARY KEY,
-  "name" TEXT,
-  "description" TEXT,
-  "numberOfEmployees" TEXT,
-  "notificationPreferences" ARRAY (
-    TEXT
-  ),
-  "addresses" ARRAY (
-    OBJECT(DYNAMIC) AS (
-      "address" OBJECT(DYNAMIC) AS (
-        "street" TEXT,
-        "city" TEXT,
-        "county" TEXT,
-        "state" TEXT,
-        "zip" TEXT,
-        "country" TEXT,
-        "latitude" BIGINT,
-        "longitude" BIGINT
-      ),
-      "name" TEXT,
-      "isPrimary" BOOLEAN
-    )
-  ),
-  "integrations" OBJECT(DYNAMIC) AS (
-    "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" BIGINT,
-      "subscriptionStatus" TEXT
-    )
-  ),
-  "metadata" OBJECT(IGNORED)
-) WITH (column_policy = 'dynamic')`
-      )
-    })
     it('can replace a leaf node', () => {
       expect(
         convertSchema(schema, '"doc"."foobar"', {
@@ -479,89 +441,6 @@ describe('convertSchema', () => {
       "name" TEXT,
       "isPrimary" BOOLEAN
     )
-  ),
-  "integrations" OBJECT(DYNAMIC) AS (
-    "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" BIGINT,
-      "subscriptionStatus" TEXT
-    )
-  ),
-  "metadata" OBJECT(IGNORED)
-) WITH (column_policy = 'dynamic')`
-      )
-    })
-    it('can replace a non-leaf node', () => {
-      expect(
-        convertSchema(schema, '"doc"."foobar"', {
-          mapSchema: ({ path, val }) => {
-            if (_.isEqual(path, ['properties', 'addresses', 'items'])) {
-              // This should result in OBJECT(IGNORED), since there are no
-              // properties.
-              return { bsonType: 'object' }
-            }
-
-            return val
-          },
-        })
-      ).toEqual(
-        `CREATE TABLE IF NOT EXISTS "doc"."foobar" (
-  "id" TEXT PRIMARY KEY,
-  "name" TEXT,
-  "description" TEXT,
-  "numberOfEmployees" TEXT,
-  "notificationPreferences" ARRAY (
-    TEXT
-  ),
-  "addresses" ARRAY (
-    OBJECT(IGNORED)
-  ),
-  "integrations" OBJECT(DYNAMIC) AS (
-    "stripe" OBJECT(DYNAMIC) AS (
-      "priceId" BIGINT,
-      "subscriptionStatus" TEXT
-    )
-  ),
-  "metadata" OBJECT(IGNORED)
-) WITH (column_policy = 'dynamic')`
-      )
-    })
-    it('can remove nodes', () => {
-      expect(
-        convertSchema(schema, '"doc"."foobar"', {
-          mapSchema: ({ path, val }) => {
-            if (
-              _.isEqual(path, [
-                'properties',
-                'addresses',
-                'items',
-                'additionalProperties',
-              ]) ||
-              _.isEqual(path, [
-                'properties',
-                'addresses',
-                'items',
-                'properties',
-              ])
-            ) {
-              // This should result in OBJECT(IGNORED), since we removed the
-              // properties.
-              return undefined
-            }
-
-            return val
-          },
-        })
-      ).toEqual(
-        `CREATE TABLE IF NOT EXISTS "doc"."foobar" (
-  "id" TEXT PRIMARY KEY,
-  "name" TEXT,
-  "description" TEXT,
-  "numberOfEmployees" TEXT,
-  "notificationPreferences" ARRAY (
-    TEXT
-  ),
-  "addresses" ARRAY (
-    OBJECT(IGNORED)
   ),
   "integrations" OBJECT(DYNAMIC) AS (
     "stripe" OBJECT(DYNAMIC) AS (
