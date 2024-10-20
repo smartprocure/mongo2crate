@@ -1,5 +1,5 @@
 import { JSONSchema } from 'mongochangestream'
-import type { ChangeStreamDocument, ObjectId } from 'mongodb'
+import type { ChangeStreamDocument } from 'mongodb'
 import { Mapper, Node } from 'obj-walker'
 
 interface RenameOption {

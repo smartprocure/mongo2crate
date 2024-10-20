@@ -1,3 +1,7 @@
+# 0.50.0
+
+-   Latest `mongochangestream` - Fix pseudo ChangeStreamInsertDocument record.
+
 # 0.49.0
 
 -   **Deprecated** `immutable` option for `processChangeStream` in favor of `autoOptimizeInserts` option that works well in an insert-only
