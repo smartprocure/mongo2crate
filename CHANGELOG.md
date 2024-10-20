@@ -1,3 +1,7 @@
+# 0.50.1
+
+-   Fix to `process` event `failed` property.
+
 # 0.50.0
 
 -   Latest `mongochangestream` - Fix pseudo ChangeStreamInsertDocument record.

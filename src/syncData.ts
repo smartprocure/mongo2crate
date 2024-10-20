@@ -18,9 +18,12 @@ import type { QueueOptions } from 'prom-utils'
 import { convertSchema } from './convertSchema.js'
 import type { Crate, ErrorResult, QueryResult } from './crate.js'
 import type {
+  ChangeStreamErrorEvent,
+  ChangeStreamProcessEvent,
   ConvertOptions,
   Events,
   OptimizationOptions,
+  ProcessEvent,
   SyncOptions,
 } from './types.js'
 import {
@@ -76,13 +79,20 @@ export const initSync = (
   ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
-      emit('process', {
+      const event = {
         success: result.rowcount,
+        fail: 0,
         changeStream: true,
         operationCounts: { [operationType]: 1 },
-      })
+      } as ChangeStreamProcessEvent
+      emit('process', event)
     } else {
-      emit('error', { error: result, changeStream: true, failedDoc: _id })
+      const event = {
+        error: result,
+        changeStream: true,
+        failedDoc: _id,
+      } as ChangeStreamErrorEvent
+      emit('error', event)
     }
   }
   /**
@@ -129,7 +139,7 @@ export const initSync = (
    */
   const processInsertRecords = async (
     docs: ChangeStreamInsertDocument[],
-    type = 'initialScan'
+    type: 'initialScan' | 'changeStream' = 'initialScan'
   ) => {
     try {
       const documents = docs.map(({ fullDocument }) => mapper(fullDocument))
@@ -141,13 +151,14 @@ export const initSync = (
         // -2 indicates failure
         const numFailed = sumByRowcount(-2)(result.results)
         const failedDocs = getFailedRecords(result.results, docs)
-        emit('process', {
+        const event = {
           success: numInserted,
           fail: numFailed,
           ...(failedDocs.length && { failedDocs }),
           [type]: true,
           operationCounts: { insert: docs.length },
-        })
+        } as ProcessEvent
+        emit('process', event)
       }
       if ('error' in result) {
         emit('error', { error: result, [type]: true })
