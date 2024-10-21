@@ -89,16 +89,18 @@ type OperationCounts = Partial<
 
 interface BaseProcessEvent {
   type: 'process'
+  success: number
+  fail: number
   /** _id of failed documents */
   failedDocs?: unknown[]
   operationCounts: OperationCounts
 }
 
-interface InitialScanProcessEvent extends BaseProcessEvent {
+export interface InitialScanProcessEvent extends BaseProcessEvent {
   initialScan: true
 }
 
-interface ChangeStreamProcessEvent extends BaseProcessEvent {
+export interface ChangeStreamProcessEvent extends BaseProcessEvent {
   changeStream: true
 }
 
@@ -109,11 +111,11 @@ interface BaseErrorEvent {
   error: unknown
 }
 
-interface InitialScanErrorEvent extends BaseErrorEvent {
+export interface InitialScanErrorEvent extends BaseErrorEvent {
   initialScan: true
 }
 
-interface ChangeStreamErrorEvent extends BaseErrorEvent {
+export interface ChangeStreamErrorEvent extends BaseErrorEvent {
   changeStream: true
   /** _id of failed document */
   failedDoc?: unknown

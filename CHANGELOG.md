@@ -1,3 +1,8 @@
+# 0.51.0
+
+-   Fix to `process` event `failed` property.
+-   Latest `mongochangestream` - Add `lastFlush` to `stats` event.
+
 # 0.50.0
 
 -   Latest `mongochangestream` - Fix pseudo ChangeStreamInsertDocument record.
