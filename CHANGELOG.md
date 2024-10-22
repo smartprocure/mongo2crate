@@ -1,3 +1,7 @@
+# 0.52.0
+
+-   Latest `mongochangestream` - Fix for downstream `processRecords` mutation.
+
 # 0.51.0
 
 -   Fix to `process` event `failed` property.
