@@ -2,7 +2,7 @@ import _debug from 'debug'
 import _ from 'lodash/fp.js'
 import ms from 'ms'
 import fetch from 'node-fetch'
-import retry, { Options } from 'p-retry'
+import retry, { type Options } from 'p-retry'
 
 import {
   getAuthHeader,
