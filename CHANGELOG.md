@@ -1,3 +1,7 @@
+# 0.53.0
+
+-   Retry for up to 24 hours if the exception is not `DuplicateKeyException`.
+
 # 0.52.0
 
 -   Latest `mongochangestream` - Fix for downstream `processRecords` mutation.
