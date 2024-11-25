@@ -1,10 +1,8 @@
 import _debug from 'debug'
 import type { Redis } from 'ioredis'
 import _ from 'lodash/fp.js'
-import mongoChangeStream, {
-  type ChangeStreamOptions,
-  type ScanOptions,
-} from 'mongochangestream'
+import { type ChangeStreamOptions, type ScanOptions } from 'mongochangestream'
+import * as mongoChangeStream from 'mongochangestream'
 import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
@@ -54,7 +52,15 @@ export const initSync = (
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
   // Initialize sync
-  const sync = mongoChangeStream.initSync<Events>(redis, collection, options)
+  const sync = mongoChangeStream.initSync<Events>(redis, collection, {
+    ...options,
+    retry: {
+      shouldRetry(error) {
+        // Don't retry if we get this exception
+        return !error.message.includes('DuplicateKeyException')
+      },
+    },
+  })
   // Use emitter from mongochangestream
   const emitter = sync.emitter
   const emit = (event: Events, data: object) => {
@@ -171,7 +177,7 @@ export const initSync = (
   const processChangeStream = (
     options?: QueueOptions & ChangeStreamOptions & OptimizationOptions
   ) =>
-    options?.autoOptimizeInserts || options?.immutable
+    options?.autoOptimizeInserts
       ? sync.processChangeStream(async (docs) => {
           const partitions = partitionEvents(docs)
           for (const partition of partitions) {

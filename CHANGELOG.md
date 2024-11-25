@@ -1,3 +1,8 @@
+# 0.54.0
+
+-   Latest `mongochangestream` - Move retry logic to `mongochangestream`.
+-   Removed `immutable` option.
+
 # 0.53.0
 
 -   Retry for up to 24 hours if the exception is not `DuplicateKeyException`.

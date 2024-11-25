@@ -9,12 +9,6 @@ interface RenameOption {
 
 export interface OptimizationOptions {
   /**
-   * If the collection is immutable set this to true. This allows batch processing
-   * where all change stream events are assumed to be inserts.
-   * @deprecated Use the autoOptimizeInserts option instead.
-   */
-  immutable?: boolean
-  /**
    * Automatically optimize inserts by batching them together and flushing
    * the insert queue when a non-insert event is received or a queue threshold
    * is met - length, size in bytes, timeout, etc.
