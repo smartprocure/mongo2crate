@@ -3,6 +3,7 @@ import type { Redis } from 'ioredis'
 import _ from 'lodash/fp.js'
 import { type ChangeStreamOptions, type ScanOptions } from 'mongochangestream'
 import * as mongoChangeStream from 'mongochangestream'
+import { renameKeys } from 'mongochangestream'
 import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
@@ -27,12 +28,17 @@ import type {
 import {
   getFailedRecords,
   partitionEvents,
-  renameKeys,
   setDefaults,
   sumByRowcount,
 } from './util.js'
 
 const debug = _debug('mongo2crate:sync')
+
+const maybeThrow = (error: any) => {
+  if (!error?.message?.includes('DuplicateKeyException')) {
+    throw error
+  }
+}
 
 export const initSync = (
   redis: Redis,
@@ -52,15 +58,7 @@ export const initSync = (
   const tableName = options.tableName || collection.collectionName.toLowerCase()
   const qualifiedName = `"${schemaName}"."${tableName}"`
   // Initialize sync
-  const sync = mongoChangeStream.initSync<Events>(redis, collection, {
-    ...options,
-    retry: {
-      shouldRetry(error) {
-        // Don't retry if we get this exception
-        return !error.message.includes('DuplicateKeyException')
-      },
-    },
-  })
+  const sync = mongoChangeStream.initSync<Events>(redis, collection, options)
   // Use emitter from mongochangestream
   const emitter = sync.emitter
   const emit = (event: Events, data: object) => {
@@ -138,6 +136,7 @@ export const initSync = (
       }
     } catch (e) {
       emit('error', { error: e, changeStream: true })
+      maybeThrow(e)
     }
   }
   /**
@@ -171,6 +170,7 @@ export const initSync = (
       }
     } catch (e) {
       emit('error', { error: e, [type]: true })
+      maybeThrow(e)
     }
   }
 

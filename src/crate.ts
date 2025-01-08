@@ -12,6 +12,7 @@ import {
 } from './crate/util.js'
 
 const debug = _debug('mongo2crate:crate')
+debug.log = console.log.bind(console)
 
 export interface CrateConfig {
   sqlEndpoint?: string
@@ -53,14 +54,19 @@ export const crate = (config?: CrateConfig) => {
   const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 
-  const query = (sql: string, options?: QueryOptions) => {
+  const query = async (sql: string, options?: QueryOptions) => {
     const { args, coltypes = false } = options || {}
+    debug('SQL endpoint - %s', sqlEndpoint)
     debug('query - sql %s args %O', sql, args)
-    return fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
+    const body = JSON.stringify({ stmt: sql, ...(args && { args }) })
+    const headers = { 'Content-Type': 'application/json', ...authHeader }
+    debug('headers - %o', headers)
+    const resp = await fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
       method: 'post',
-      body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
-      headers: { 'Content-Type': 'application/json', ...authHeader },
-    }).then((res) => res.json() as Promise<QueryResult | ErrorResult>)
+      body,
+      headers,
+    })
+    return (await resp.json()) as QueryResult | ErrorResult
   }
 
   const insert = (qualifiedName: string, record: object) => {
