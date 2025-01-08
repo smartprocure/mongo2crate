@@ -7,7 +7,7 @@ import {
 import { type Db, MongoClient } from 'mongodb'
 import ms from 'ms'
 import { setTimeout } from 'node:timers/promises'
-import { describe, expect, test } from 'vitest'
+import { assert, describe, expect, test } from 'vitest'
 
 import * as mongo2crate from './index.js'
 import { type SyncOptions } from './index.js'
@@ -33,7 +33,7 @@ const getSync = async (options?: SyncOptions) => {
   const { redis, coll, crate } = await getConns()
   const sync = mongo2crate.initSync(redis, coll, crate, {
     ...options,
-    schemaName: 'testing',
+    schemaName: 'mongo2crate_testing',
   })
   sync.emitter.on('stateChange', console.log)
   return sync
@@ -46,7 +46,7 @@ const initCrateState = async (
   const { crate } = await getConns()
   // Drop table
   await crate.query(`DROP TABLE IF EXISTS ${sync.qualifiedName}`)
-  console.log('Dropped table')
+  console.log('Dropped table - %s', sync.qualifiedName)
   // Schema
   const schema = await sync.getCollectionSchema(db)
   if (schema) {
@@ -55,6 +55,7 @@ const initCrateState = async (
       console.error(result.error)
       process.exit(1)
     }
+    console.log('Created table from schema')
   } else {
     console.error('Missing schema')
     process.exit(1)
@@ -79,12 +80,15 @@ describe.sequential('syncCollection', () => {
     )
     if (!('error' in countResponse)) {
       expect(countResponse.rows[0][0]).toBe(numDocs)
+      return
     }
+    assert.fail(countResponse.error.message)
   })
   test('should process records via change stream', async () => {
     const { coll, db, crate } = await getConns()
     const sync = await getSync()
-    await initRedisAndMongoState(sync, db, coll)
+    const numDocs = 100
+    await initRedisAndMongoState(sync, db, coll, numDocs)
     await initCrateState(sync, db)
 
     const changeStream = await sync.processChangeStream()
@@ -94,14 +98,16 @@ describe.sequential('syncCollection', () => {
     // Update records
     coll.updateMany({}, { $set: { createdAt: date } })
     // Wait for the change stream events to be processed
-    await setTimeout(ms('2s'))
+    await setTimeout(ms('6s'))
     const countResponse = await crate.query(
-      `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE createdAt >= '${date}'`
+      `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE "createdAt" >= '${date.toISOString()}'`
     )
     // Stop
     await changeStream.stop()
     if (!('error' in countResponse)) {
       expect(countResponse.rows[0][0]).toBe(numDocs)
+      return
     }
+    assert.fail(countResponse.error.message)
   })
 })
