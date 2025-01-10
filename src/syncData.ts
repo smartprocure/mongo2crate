@@ -19,6 +19,7 @@ import type { Crate, ErrorResult, QueryResult } from './crate.js'
 import type {
   ChangeStreamProcessEvent,
   ConvertOptions,
+  ErrorLike,
   Events,
   OptimizationOptions,
   ProcessEvent,
@@ -33,7 +34,7 @@ import {
 
 const debug = _debug('mongo2crate:sync')
 
-const maybeThrow = (error: any) => {
+const maybeThrow = (error: ErrorLike) => {
   if (!error?.message?.includes('DuplicateKeyException')) {
     throw error
   }
@@ -90,7 +91,7 @@ export const initSync = (
       } as ChangeStreamProcessEvent
       emit('process', event)
     } else {
-      maybeThrow(result)
+      maybeThrow(result.error)
     }
   }
   /**
@@ -129,7 +130,7 @@ export const initSync = (
         handleChangeStreamResult(result, doc.operationType, _id)
       }
     } catch (e) {
-      maybeThrow(e)
+      maybeThrow(e as Error)
     }
   }
   /**
@@ -159,10 +160,10 @@ export const initSync = (
         emit('process', event)
       }
       if ('error' in result) {
-        maybeThrow(result)
+        maybeThrow(result.error)
       }
     } catch (e) {
-      maybeThrow(e)
+      maybeThrow(e as Error)
     }
   }
 

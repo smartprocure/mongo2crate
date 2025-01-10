@@ -99,3 +99,7 @@ export interface ChangeStreamProcessEvent extends BaseProcessEvent {
 }
 
 export type ProcessEvent = InitialScanProcessEvent | ChangeStreamProcessEvent
+
+export interface ErrorLike {
+  message?: string
+}
