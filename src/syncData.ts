@@ -9,13 +9,12 @@ import type {
   ChangeStreamInsertDocument,
   Collection,
   Document,
-  ObjectId,
 } from 'mongodb'
 import { mapLeaves } from 'obj-walker'
 import type { QueueOptions } from 'prom-utils'
 
 import { convertSchema } from './convertSchema.js'
-import type { Crate, ErrorResult, QueryResult } from './crate.js'
+import type { Crate, Response } from './crate.js'
 import type {
   ChangeStreamProcessEvent,
   ConvertOptions,
@@ -77,9 +76,8 @@ export const initSync = (
   }
 
   const handleChangeStreamResult = (
-    result: QueryResult | ErrorResult,
-    operationType: ChangeStreamDocument['operationType'],
-    _id: ObjectId
+    result: Response,
+    operationType: ChangeStreamDocument['operationType']
   ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
@@ -103,18 +101,16 @@ export const initSync = (
     try {
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
-        const _id = doc.documentKey._id
         const result = await crate.insert(qualifiedName, document)
-        handleChangeStreamResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
         const removed = removedFields && setDefaults(removedFields, null)
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
-          const _id = doc.documentKey._id
           const result = await crate.upsert(qualifiedName, document, update)
-          handleChangeStreamResult(result, doc.operationType, _id)
+          handleChangeStreamResult(result, doc.operationType)
         }
       } else if (doc.operationType === 'replace') {
         const _id = doc.documentKey._id
@@ -123,11 +119,11 @@ export const initSync = (
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleChangeStreamResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       } else if (doc.operationType === 'delete') {
         const _id = doc.documentKey._id
         const result = await crate.deleteById(qualifiedName, _id.toString())
-        handleChangeStreamResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       }
     } catch (e) {
       maybeThrow(e as Error)

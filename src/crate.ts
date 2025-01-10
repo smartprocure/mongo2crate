@@ -42,6 +42,9 @@ export interface ErrorResult {
   }
 }
 
+export type Response = QueryResult | ErrorResult
+export type BulkResponse = BulkQueryResult | ErrorResult
+
 export interface QueryOptions {
   args?: any[]
   coltypes?: boolean
@@ -66,7 +69,7 @@ export const crate = (config?: CrateConfig) => {
       body,
       headers,
     })
-    return (await resp.json()) as QueryResult | ErrorResult
+    return (await resp.json()) as Response
   }
 
   const insert = (qualifiedName: string, record: object) => {
@@ -91,7 +94,7 @@ export const crate = (config?: CrateConfig) => {
       method: 'post',
       body: JSON.stringify({ stmt: sql, bulk_args: args }),
       headers: { 'Content-Type': 'application/json', ...authHeader },
-    }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>)
+    }).then((res) => res.json() as Promise<BulkResponse>)
   }
 
   return { query, insert, upsert, bulkInsert, deleteById }
