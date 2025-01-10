@@ -75,7 +75,7 @@ export interface ConvertOptions extends RenameOption {
   strictMode?: boolean
 }
 
-export type Events = 'process' | 'error'
+export type Events = 'process'
 
 type OperationCounts = Partial<
   Record<ChangeStreamDocument['operationType'], number>
@@ -99,20 +99,3 @@ export interface ChangeStreamProcessEvent extends BaseProcessEvent {
 }
 
 export type ProcessEvent = InitialScanProcessEvent | ChangeStreamProcessEvent
-
-interface BaseErrorEvent {
-  type: 'error'
-  error: unknown
-}
-
-export interface InitialScanErrorEvent extends BaseErrorEvent {
-  initialScan: true
-}
-
-export interface ChangeStreamErrorEvent extends BaseErrorEvent {
-  changeStream: true
-  /** _id of failed document */
-  failedDoc?: unknown
-}
-
-export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent

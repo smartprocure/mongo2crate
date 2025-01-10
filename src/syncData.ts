@@ -17,7 +17,6 @@ import type { QueueOptions } from 'prom-utils'
 import { convertSchema } from './convertSchema.js'
 import type { Crate, ErrorResult, QueryResult } from './crate.js'
 import type {
-  ChangeStreamErrorEvent,
   ChangeStreamProcessEvent,
   ConvertOptions,
   Events,
@@ -76,7 +75,7 @@ export const initSync = (
     return crate.query(createTableStmt)
   }
 
-  const handleResult = (
+  const handleChangeStreamResult = (
     result: QueryResult | ErrorResult,
     operationType: ChangeStreamDocument['operationType'],
     _id: ObjectId
@@ -91,12 +90,7 @@ export const initSync = (
       } as ChangeStreamProcessEvent
       emit('process', event)
     } else {
-      const event = {
-        error: result,
-        changeStream: true,
-        failedDoc: _id,
-      } as ChangeStreamErrorEvent
-      emit('error', event)
+      maybeThrow(result)
     }
   }
   /**
@@ -110,7 +104,7 @@ export const initSync = (
         const document = mapper(doc.fullDocument)
         const _id = doc.documentKey._id
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType, _id)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
@@ -119,7 +113,7 @@ export const initSync = (
         if (_.size(update)) {
           const _id = doc.documentKey._id
           const result = await crate.upsert(qualifiedName, document, update)
-          handleResult(result, doc.operationType, _id)
+          handleChangeStreamResult(result, doc.operationType, _id)
         }
       } else if (doc.operationType === 'replace') {
         const _id = doc.documentKey._id
@@ -128,14 +122,13 @@ export const initSync = (
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType, _id)
       } else if (doc.operationType === 'delete') {
         const _id = doc.documentKey._id
         const result = await crate.deleteById(qualifiedName, _id.toString())
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType, _id)
       }
     } catch (e) {
-      emit('error', { error: e, changeStream: true })
       maybeThrow(e)
     }
   }
@@ -166,10 +159,9 @@ export const initSync = (
         emit('process', event)
       }
       if ('error' in result) {
-        emit('error', { error: result, [type]: true })
+        maybeThrow(result)
       }
     } catch (e) {
-      emit('error', { error: e, [type]: true })
       maybeThrow(e)
     }
   }
