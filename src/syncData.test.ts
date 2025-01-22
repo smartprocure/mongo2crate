@@ -100,7 +100,7 @@ describe.sequential('syncCollection', () => {
     // Wait for the change stream events to be processed
     await setTimeout(ms('8s'))
     const countResponse = await crate.query(
-      `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE "createdAt" >= '${date.toISOString()}'`
+      `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE "createdAt" = '${date.toISOString()}'`
     )
     // Stop
     await changeStream.stop()
