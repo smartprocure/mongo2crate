@@ -2,6 +2,7 @@
 
 - Latest `mongochangestream` - Move retry logic to `mongochangestream`.
 - Removed `immutable` option.
+- Added tests.
 
 # 0.53.0
 
