@@ -191,3 +191,13 @@ CREATE TABLE IF NOT EXISTS "doc"."foobar" (
   "metadata" OBJECT(IGNORED)
 )
 ```
+
+## Run the test locally
+
+Create a .env file with the following variables set for your CrateDB cluster.
+
+```
+MONGO_CONN="mongodb+srv://..."
+SQL_ENDPOINT='https://foo.bar:4200/_sql'
+AUTH='username:password'
+```
