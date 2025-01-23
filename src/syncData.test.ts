@@ -26,7 +26,7 @@ const getConns = _.memoize(async () => {
   )
   const db = mongoClient.db()
   const coll = db.collection('testing')
-  // Elastic
+  // Crate
   const crate = mongo2crate.crate({
     sqlEndpoint: process.env.SQL_ENDPOINT as string,
     auth: process.env.AUTH as string,
