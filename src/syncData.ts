@@ -1,26 +1,24 @@
 import _debug from 'debug'
 import type { Redis } from 'ioredis'
 import _ from 'lodash/fp.js'
-import mongoChangeStream, {
-  type ChangeStreamOptions,
-  type ScanOptions,
-} from 'mongochangestream'
+import { type ChangeStreamOptions, type ScanOptions } from 'mongochangestream'
+import * as mongoChangeStream from 'mongochangestream'
+import { renameKeys } from 'mongochangestream'
 import type {
   ChangeStreamDocument,
   ChangeStreamInsertDocument,
   Collection,
   Document,
-  ObjectId,
 } from 'mongodb'
 import { mapLeaves } from 'obj-walker'
 import type { QueueOptions } from 'prom-utils'
 
 import { convertSchema } from './convertSchema.js'
-import type { Crate, ErrorResult, QueryResult } from './crate.js'
+import type { Crate, Response } from './crate.js'
 import type {
-  ChangeStreamErrorEvent,
   ChangeStreamProcessEvent,
   ConvertOptions,
+  ErrorLike,
   Events,
   OptimizationOptions,
   ProcessEvent,
@@ -29,12 +27,21 @@ import type {
 import {
   getFailedRecords,
   partitionEvents,
-  renameKeys,
   setDefaults,
   sumByRowcount,
 } from './util.js'
 
 const debug = _debug('mongo2crate:sync')
+
+const maybeThrow = (error: ErrorLike) => {
+  debug('Error caught %O', error)
+  // This exception can be thrown if a document is updated and handled
+  // by processChangeStream before runInitialScan has processed the record.
+  // DuplicateKeyException[A document with the same primary key exists already]
+  if (!error?.message?.includes('DuplicateKeyException')) {
+    throw error
+  }
+}
 
 export const initSync = (
   redis: Redis,
@@ -72,10 +79,9 @@ export const initSync = (
     return crate.query(createTableStmt)
   }
 
-  const handleResult = (
-    result: QueryResult | ErrorResult,
-    operationType: ChangeStreamDocument['operationType'],
-    _id: ObjectId
+  const handleChangeStreamResult = (
+    result: Response,
+    operationType: ChangeStreamDocument['operationType']
   ) => {
     debug('Change stream result %O', result)
     if ('rowcount' in result) {
@@ -87,12 +93,7 @@ export const initSync = (
       } as ChangeStreamProcessEvent
       emit('process', event)
     } else {
-      const event = {
-        error: result,
-        changeStream: true,
-        failedDoc: _id,
-      } as ChangeStreamErrorEvent
-      emit('error', event)
+      maybeThrow(result.error)
     }
   }
   /**
@@ -104,18 +105,16 @@ export const initSync = (
     try {
       if (doc.operationType === 'insert') {
         const document = mapper(doc.fullDocument)
-        const _id = doc.documentKey._id
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       } else if (doc.operationType === 'update') {
         const document = doc.fullDocument ? mapper(doc.fullDocument) : {}
         const { updatedFields, removedFields } = doc.updateDescription
         const removed = removedFields && setDefaults(removedFields, null)
         const update = mapper({ ...updatedFields, ...removed })
         if (_.size(update)) {
-          const _id = doc.documentKey._id
           const result = await crate.upsert(qualifiedName, document, update)
-          handleResult(result, doc.operationType, _id)
+          handleChangeStreamResult(result, doc.operationType)
         }
       } else if (doc.operationType === 'replace') {
         const _id = doc.documentKey._id
@@ -124,14 +123,14 @@ export const initSync = (
         // Insert
         const document = mapper(doc.fullDocument)
         const result = await crate.insert(qualifiedName, document)
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       } else if (doc.operationType === 'delete') {
         const _id = doc.documentKey._id
         const result = await crate.deleteById(qualifiedName, _id.toString())
-        handleResult(result, doc.operationType, _id)
+        handleChangeStreamResult(result, doc.operationType)
       }
     } catch (e) {
-      emit('error', { error: e, changeStream: true })
+      maybeThrow(e as Error)
     }
   }
   /**
@@ -161,17 +160,17 @@ export const initSync = (
         emit('process', event)
       }
       if ('error' in result) {
-        emit('error', { error: result, [type]: true })
+        maybeThrow(result.error)
       }
     } catch (e) {
-      emit('error', { error: e, [type]: true })
+      maybeThrow(e as Error)
     }
   }
 
   const processChangeStream = (
     options?: QueueOptions & ChangeStreamOptions & OptimizationOptions
   ) =>
-    options?.autoOptimizeInserts || options?.immutable
+    options?.autoOptimizeInserts
       ? sync.processChangeStream(async (docs) => {
           const partitions = partitionEvents(docs)
           for (const partition of partitions) {

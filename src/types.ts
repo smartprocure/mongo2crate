@@ -9,12 +9,6 @@ interface RenameOption {
 
 export interface OptimizationOptions {
   /**
-   * If the collection is immutable set this to true. This allows batch processing
-   * where all change stream events are assumed to be inserts.
-   * @deprecated Use the autoOptimizeInserts option instead.
-   */
-  immutable?: boolean
-  /**
    * Automatically optimize inserts by batching them together and flushing
    * the insert queue when a non-insert event is received or a queue threshold
    * is met - length, size in bytes, timeout, etc.
@@ -81,7 +75,7 @@ export interface ConvertOptions extends RenameOption {
   strictMode?: boolean
 }
 
-export type Events = 'process' | 'error'
+export type Events = 'process'
 
 type OperationCounts = Partial<
   Record<ChangeStreamDocument['operationType'], number>
@@ -106,19 +100,6 @@ export interface ChangeStreamProcessEvent extends BaseProcessEvent {
 
 export type ProcessEvent = InitialScanProcessEvent | ChangeStreamProcessEvent
 
-interface BaseErrorEvent {
-  type: 'error'
-  error: unknown
+export interface ErrorLike {
+  message?: string
 }
-
-export interface InitialScanErrorEvent extends BaseErrorEvent {
-  initialScan: true
-}
-
-export interface ChangeStreamErrorEvent extends BaseErrorEvent {
-  changeStream: true
-  /** _id of failed document */
-  failedDoc?: unknown
-}
-
-export type ErrorEvent = InitialScanErrorEvent | ChangeStreamErrorEvent

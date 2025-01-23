@@ -1,8 +1,6 @@
 import _debug from 'debug'
 import _ from 'lodash/fp.js'
-import ms from 'ms'
 import fetch from 'node-fetch'
-import retry, { type Options } from 'p-retry'
 
 import {
   getAuthHeader,
@@ -43,6 +41,9 @@ export interface ErrorResult {
   }
 }
 
+export type Response = QueryResult | ErrorResult
+export type BulkResponse = BulkQueryResult | ErrorResult
+
 export interface QueryOptions {
   args?: any[]
   coltypes?: boolean
@@ -50,35 +51,24 @@ export interface QueryOptions {
 
 const defaultConfig = { sqlEndpoint: 'http://localhost:4200/_sql' }
 
-const retryOptions: Options = {
-  minTimeout: ms('30s'),
-  maxTimeout: ms('1h'),
-  // This translates to retrying for up to 24 hours. It takes 7 retries
-  // to reach the maxTimeout of 1 hour.
-  retries: 30,
-  shouldRetry(error) {
-    // Don't retry if we get this exception
-    return !error.message.includes('DuplicateKeyException')
-  },
-}
-
 export const crate = (config?: CrateConfig) => {
   const { sqlEndpoint, auth } = _.defaults(defaultConfig, config)
   const authHeader = auth && getAuthHeader(auth)
   debug('Auth header %O', authHeader)
 
-  const query = (sql: string, options?: QueryOptions) => {
+  const query = async (sql: string, options?: QueryOptions) => {
     const { args, coltypes = false } = options || {}
+    debug('SQL endpoint - %s', sqlEndpoint)
     debug('query - sql %s args %O', sql, args)
-    return retry(
-      () =>
-        fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
-          method: 'post',
-          body: JSON.stringify({ stmt: sql, ...(args && { args }) }),
-          headers: { 'Content-Type': 'application/json', ...authHeader },
-        }).then((res) => res.json() as Promise<QueryResult | ErrorResult>),
-      retryOptions
-    )
+    const body = JSON.stringify({ stmt: sql, ...(args && { args }) })
+    const headers = { 'Content-Type': 'application/json', ...authHeader }
+    debug('headers - %o', headers)
+    const resp = await fetch(maybeShowColTypes(sqlEndpoint, coltypes), {
+      method: 'post',
+      body,
+      headers,
+    })
+    return (await resp.json()) as Response
   }
 
   const insert = (qualifiedName: string, record: object) => {
@@ -99,15 +89,11 @@ export const crate = (config?: CrateConfig) => {
   const bulkInsert = (qualifiedName: string, records: object[]) => {
     const { sql, args } = getBulkInsertSqlAndArgs(qualifiedName, records)
     debug('bulkInsert - sql %s bulk_args %O', sql, args)
-    return retry(
-      () =>
-        fetch(sqlEndpoint, {
-          method: 'post',
-          body: JSON.stringify({ stmt: sql, bulk_args: args }),
-          headers: { 'Content-Type': 'application/json', ...authHeader },
-        }).then((res) => res.json() as Promise<BulkQueryResult | ErrorResult>),
-      retryOptions
-    )
+    return fetch(sqlEndpoint, {
+      method: 'post',
+      body: JSON.stringify({ stmt: sql, bulk_args: args }),
+      headers: { 'Content-Type': 'application/json', ...authHeader },
+    }).then((res) => res.json() as Promise<BulkResponse>)
   }
 
   return { query, insert, upsert, bulkInsert, deleteById }

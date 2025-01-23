@@ -6,27 +6,7 @@ import {
   getUniqueKeys,
   quoteColumn,
 } from './crate/util.js'
-import { renameKeys } from './util.js'
 
-describe('renameKeys', () => {
-  it('should rename keys that exist in document', () => {
-    const document = {
-      name: 'Joe',
-      age: 42,
-      height: 70,
-    }
-    renameKeys(document, {
-      age: 'ageInYears',
-      height: 'heightInInches',
-      notFound: 'missing',
-    })
-    expect(document).toEqual({
-      name: 'Joe',
-      ageInYears: 42,
-      heightInInches: 70,
-    })
-  })
-})
 describe('getUniqueKeys', () => {
   it('should work', () => {
     const records = [

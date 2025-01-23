@@ -1,9 +1,5 @@
 import _ from 'lodash/fp.js'
-import {
-  ChangeStreamDocument,
-  ChangeStreamInsertDocument,
-  type Document,
-} from 'mongodb'
+import { ChangeStreamDocument, ChangeStreamInsertDocument } from 'mongodb'
 
 import { BulkQueryResult } from './crate.js'
 
@@ -26,24 +22,6 @@ export const setDefaults = (keys: string[], val: any) => {
     obj[key] = val
   }
   return obj
-}
-
-export const renameKey = (doc: Document, key: string, newKey: string) => {
-  const temp = doc[key]
-  delete doc[key]
-  doc[newKey] = temp
-}
-
-/**
- * Rename keys, mutating the given object.
- */
-export const renameKeys = (doc: Document, keys: Record<string, string>) => {
-  for (const key in keys) {
-    if (key in doc) {
-      const newKey = keys[key]
-      renameKey(doc, key, newKey)
-    }
-  }
 }
 
 export const sumByRowcount = (num: number) =>
