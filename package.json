@@ -12,7 +12,7 @@
     "build": "npm run clean && tsc --declaration",
     "build:watch": "tsc --watch",
     "test": "vitest run",
-    "test:watch": "vitest",
+    "test:watch": "DEBUG=mongo* vitest",
     "lint": "eslint src/**",
     "fmt": "prettier --ignore-path .gitignore --write './'"
   },

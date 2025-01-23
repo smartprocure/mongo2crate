@@ -12,7 +12,6 @@ import {
 } from './crate/util.js'
 
 const debug = _debug('mongo2crate:crate')
-debug.log = console.log.bind(console)
 
 export interface CrateConfig {
   sqlEndpoint?: string

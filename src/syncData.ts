@@ -34,9 +34,9 @@ import {
 const debug = _debug('mongo2crate:sync')
 
 const maybeThrow = (error: ErrorLike) => {
+  debug('Error caught %O', error)
   // This exception can be thrown if a document is updated and handled
   // by processChangeStream before runInitialScan has processed the record.
-  //
   // DuplicateKeyException[A document with the same primary key exists already]
   if (!error?.message?.includes('DuplicateKeyException')) {
     throw error

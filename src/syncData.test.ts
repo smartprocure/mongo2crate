@@ -11,6 +11,11 @@ import { assert, describe, expect, test } from 'vitest'
 
 import * as mongo2crate from './index.js'
 import { type SyncOptions } from './index.js'
+import debug from 'debug'
+
+// Output via console.info (stdout) instead of stderr.
+// Without this debug statements are swallowed by vitest.
+debug.log = console.info.bind(console)
 
 const getConns = _.memoize(async () => {
   // Redis
@@ -109,5 +114,32 @@ describe.sequential('syncCollection', () => {
       return
     }
     assert.fail(countResponse.error.message)
+  })
+  test('should not retry when DuplicateKeyException is thrown', async () => {
+    const { coll, db } = await getConns()
+    const sync = await getSync()
+    const numDocs = 1
+    await initRedisAndMongoState(sync, db, coll, numDocs)
+    await initCrateState(sync, db)
+
+    let processErrorCount = 0
+    sync.emitter.on('processError', () => {
+      processErrorCount++
+    })
+
+    const initialScan = await sync.runInitialScan()
+    // Wait for initial scan to complete
+    await initialScan.start()
+    await setTimeout(ms('1s'))
+    // Stop
+    await initialScan.stop()
+    // Clear sync state in order to simulate failure scenario
+    await sync.reset()
+    // Wait for initial scan to complete
+    await initialScan.start()
+    await setTimeout(ms('1s'))
+    // Stop
+    await initialScan.stop()
+    assert.strictEqual(processErrorCount, 0)
   })
 })
