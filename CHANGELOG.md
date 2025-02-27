@@ -1,3 +1,9 @@
+# 0.55.0
+
+- Latest `mongochangestream` - Performance improvements related to updating the
+  refresh token more often. See [mongochangestream
+  changelog](https://github.com/smartprocure/mongochangestream/blob/master/CHANGELOG.md#0590)
+
 # 0.54.0
 
 - Latest `mongochangestream` - Move retry logic to `mongochangestream`.
