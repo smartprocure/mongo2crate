@@ -2,51 +2,17 @@ import debug from 'debug'
 import Redis from 'ioredis'
 import _ from 'lodash/fp.js'
 import {
+  assertEventually,
   initState as initRedisAndMongoState,
   numDocs,
 } from 'mongochangestream-testing'
 import { type Db, MongoClient } from 'mongodb'
 import ms from 'ms'
 import { setTimeout } from 'node:timers/promises'
-import { TimeoutError, WaitOptions, waitUntil } from 'prom-utils'
 import { assert, describe, expect, test } from 'vitest'
 
 import * as mongo2crate from './index.js'
 import { type SyncOptions } from './index.js'
-
-// FIXME: Pull in `assertEventually` from mongochangestream-testing instead.
-
-/**
- * Asserts that the provided predicate eventually returns true.
- *
- * @param pred - The predicate to check: an async function returning a boolean.
- * @param failureMessage - The message to display if the predicate does not
- * return true before the timeout.
- * @param [waitOptions] - Options to override the default options passed into
- * `waitUntil`.
- *
- * @throws AssertionError if the predicate does not return true before the
- * timeout.
- */
-export const assertEventually = async (
-  pred: () => Promise<boolean>,
-  failureMessage = 'Failed to satisfy predicate',
-  waitOptions: WaitOptions = {}
-) => {
-  try {
-    await waitUntil(pred, {
-      timeout: ms('60s'),
-      checkFrequency: ms('50ms'),
-      ...waitOptions,
-    })
-  } catch (e) {
-    if (e instanceof TimeoutError) {
-      assert.fail(failureMessage)
-    } else {
-      throw e
-    }
-  }
-}
 
 // Output via console.info (stdout) instead of stderr.
 // Without this debug statements are swallowed by vitest.
