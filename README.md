@@ -201,3 +201,5 @@ MONGO_CONN="mongodb+srv://..."
 SQL_ENDPOINT='https://foo.bar:4200/_sql'
 AUTH='username:password'
 ```
+
+Then run `npm test` to run the tests.

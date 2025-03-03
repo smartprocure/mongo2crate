@@ -1,6 +1,8 @@
+import debug from 'debug'
 import Redis from 'ioredis'
 import _ from 'lodash/fp.js'
 import {
+  assertEventually,
   initState as initRedisAndMongoState,
   numDocs,
 } from 'mongochangestream-testing'
@@ -11,7 +13,6 @@ import { assert, describe, expect, test } from 'vitest'
 
 import * as mongo2crate from './index.js'
 import { type SyncOptions } from './index.js'
-import debug from 'debug'
 
 // Output via console.info (stdout) instead of stderr.
 // Without this debug statements are swallowed by vitest.
@@ -98,22 +99,23 @@ describe.sequential('syncCollection', () => {
 
     const changeStream = await sync.processChangeStream()
     changeStream.start()
+    // Give change stream time to connect.
     await setTimeout(ms('1s'))
     const date = new Date()
     // Update records
     coll.updateMany({}, { $set: { createdAt: date } })
-    // Wait for the change stream events to be processed
-    await setTimeout(ms('8s'))
-    const countResponse = await crate.query(
-      `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE "createdAt" = '${date.toISOString()}'`
-    )
+    // Test that all of the records are eventually synced.
+    await assertEventually(async () => {
+      const countResponse = await crate.query(
+        `SELECT COUNT(*) FROM ${sync.qualifiedName} WHERE "createdAt" = '${date.toISOString()}'`
+      )
+      if ('error' in countResponse) {
+        assert.fail(countResponse.error.message)
+      }
+      return countResponse.rows[0][0] == numDocs
+    }, `Less than ${numDocs} records were processed`)
     // Stop
     await changeStream.stop()
-    if (!('error' in countResponse)) {
-      expect(countResponse.rows[0][0]).toBe(numDocs)
-      return
-    }
-    assert.fail(countResponse.error.message)
   })
   test('should not retry when DuplicateKeyException is thrown', async () => {
     const { coll, db } = await getConns()
