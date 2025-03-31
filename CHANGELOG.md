@@ -1,3 +1,7 @@
+# 0.56.0
+
+- Bumped dependencies to fix security vulnerabilities.
+
 # 0.55.0
 
 - Latest `mongochangestream` - Performance improvements related to updating the
