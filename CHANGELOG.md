@@ -1,3 +1,8 @@
+# 0.58.0
+
+- Latest `mongochangestream` - Safely call p-retry, wrapping non-Error
+  exceptions in an Error.
+
 # 0.57.0
 
 - Latest `mongochangestream` - Fix hanging when stopping while paused.
