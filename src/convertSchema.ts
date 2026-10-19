@@ -54,6 +54,14 @@ const padding = '  '
 
 const columnPolicy = (policy: string) => ` WITH (column_policy = '${policy}')`
 
+const clusteredInto = (numberOfShards?: number) =>
+  numberOfShards === undefined ? '' : ` CLUSTERED INTO ${numberOfShards} SHARDS`
+
+interface TableOptions {
+  strictMode?: boolean
+  numberOfShards?: number
+}
+
 const getObjectPolicy = (node: Node, strictMode: boolean) => {
   const noAdditionalProps = node.val.additionalProperties === false
   if (strictMode && noAdditionalProps) {
@@ -64,9 +72,10 @@ const getObjectPolicy = (node: Node, strictMode: boolean) => {
 
 const _convertSchema = (
   nodes: Node[],
-  strictMode = false,
+  options: TableOptions = {},
   spacing = ''
 ): string => {
+  const strictMode = options.strictMode ?? false
   let returnVal = ''
   while (true) {
     const node = nodes[0]
@@ -79,8 +88,9 @@ const _convertSchema = (
     if (node.isRoot) {
       return (
         'CREATE TABLE IF NOT EXISTS %s (\n' +
-        _convertSchema(nodes.slice(1), strictMode, padding) +
+        _convertSchema(nodes.slice(1), options, padding) +
         ')' +
+        clusteredInto(options.numberOfShards) +
         columnPolicy(getObjectPolicy(node, strictMode))
       )
     }
@@ -108,7 +118,7 @@ const _convertSchema = (
           : `OBJECT(${getObjectPolicy(node, strictMode).toUpperCase()}) AS`
       returnVal +=
         `${spacing}${field}${sqlType} (\n` +
-        _convertSchema(childNodes, strictMode, newSpacing) +
+        _convertSchema(childNodes, options, newSpacing) +
         `${spacing})${comma}\n`
       nodes = nodes.slice(index + 1)
     }
@@ -195,8 +205,16 @@ const cleanupPath = _.update('path', _.pull('_items'))
 export const convertSchema: ConvertSchema = (
   jsonSchema,
   qualifiedName,
-  { mapSchema, omit, rename, overrides, strictMode } = {}
+  { mapSchema, omit, rename, overrides, strictMode, numberOfShards } = {}
 ) => {
+  if (
+    numberOfShards !== undefined &&
+    !(Number.isInteger(numberOfShards) && numberOfShards > 0)
+  ) {
+    throw new Mongo2CrateError(
+      `numberOfShards must be a positive integer: ${numberOfShards}`
+    )
+  }
   if (mapSchema) {
     jsonSchema = map(jsonSchema, mapSchema)
   }
@@ -210,6 +228,6 @@ export const convertSchema: ConvertSchema = (
   if (overrides) {
     handleOverrides(nodes, overrides)
   }
-  const sqlSchema = _convertSchema(nodes, strictMode)
+  const sqlSchema = _convertSchema(nodes, { strictMode, numberOfShards })
   return util.format(sqlSchema, qualifiedName)
 }

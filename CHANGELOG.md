@@ -1,3 +1,7 @@
+# 0.61.0
+
+- Add `numberOfShards` to `ConvertOptions`
+
 # 0.60.0
 
 - Bump deps.
