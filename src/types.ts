@@ -73,6 +73,12 @@ export interface ConvertOptions extends RenameOption {
    * with no defined properties are set to `OBJECT(IGNORED)`.
    */
   strictMode?: boolean
+  /**
+   * Number of primary shards for the table, rendered as
+   * `CLUSTERED INTO n SHARDS`. Must be a positive integer. When omitted,
+   * CrateDB's default applies.
+   */
+  numberOfShards?: number
 }
 
 export type Events = 'process'

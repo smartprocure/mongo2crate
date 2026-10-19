@@ -148,6 +148,35 @@ describe('convertSchema', () => {
   "metadata" OBJECT(IGNORED)
 ) WITH (column_policy = 'strict')`)
   })
+  it('should render numberOfShards before the column policy', () => {
+    const sql = convertSchema(schema, '"doc"."foobar"', { numberOfShards: 2 })
+    expect(sql).toMatch(
+      /\n\) CLUSTERED INTO 2 SHARDS WITH \(column_policy = 'dynamic'\)$/
+    )
+    // Only the table-level clause differs
+    expect(sql.replace(' CLUSTERED INTO 2 SHARDS', '')).toEqual(
+      convertSchema(schema, '"doc"."foobar"')
+    )
+  })
+  it('should combine numberOfShards with strictMode', () => {
+    expect(
+      convertSchema(schema, '"doc"."foobar"', {
+        strictMode: true,
+        numberOfShards: 1,
+      })
+    ).toMatch(/\n\) CLUSTERED INTO 1 SHARDS WITH \(column_policy = 'strict'\)$/)
+  })
+  it('should not render a shard clause when numberOfShards is omitted', () => {
+    expect(convertSchema(schema, '"doc"."foobar"')).not.toContain('CLUSTERED')
+  })
+  it.each([0, 1.5, -1, NaN])(
+    'should throw for invalid numberOfShards: %s',
+    (numberOfShards) => {
+      expect(() =>
+        convertSchema(schema, '"doc"."foobar"', { numberOfShards })
+      ).toThrow('numberOfShards must be a positive integer')
+    }
+  )
   it('should omit fields from the schema', () => {
     expect(
       convertSchema(schema, '"doc"."foobar"', {
